@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepEd-Compliant AI TOS Generator</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SheetJS (xlsx) for accurate Excel exports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- html2pdf.js for generating beautiful PDFs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            depedBlue: {
+              DEFAULT: '#002f6c',
+              light: '#0a4085',
+              dark: '#001e47'
+            },
+            depedYellow: {
+              DEFAULT: '#f2a900',
+              light: '#ffc72c',
+              dark: '#c18200'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling for print media */
+    @media print {
+      body {
+        background-color: white;
+        color: black;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-landscape {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      @page {
+        size: legal landscape;
+        margin: 0.4in;
+      }
+      table {
+        page-break-inside: auto;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Header Banner -->
+  <header class="bg-depedBlue text-white border-b-4 border-depedYellow no-print">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-white p-2 rounded-full shadow-inner flex items-center justify-center">
+          <svg class="w-10 h-10 text-depedBlue" viewBox="0 0 100 100" fill="currentColor">
+            <path d="M50 10 L85 25 L85 60 C85 75 65 88 50 92 C35 88 15 75 15 60 L15 25 Z" fill="#002f6c"/>
+            <path d="M50 18 L77 30 L77 58 C77 69 61 79 50 83 C39 79 23 69 23 58 L23 30 Z" fill="#ffffff"/>
+            <polygon points="50,30 35,45 42,45 42,65 58,65 58,45 65,45" fill="#f2a900"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">AI Table of Specifications (TOS) Generator</h1>
+          <p class="text-xs text-blue-200">Interactive DepEd-Compliant Examination Blueprinting System</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="loadGoldenTestCase()" class="bg-depedYellow hover:bg-depedYellow-light text-depedBlue font-bold px-4 py-2 rounded shadow transition flex items-center gap-2" title="Load sample Grade 8 Creative Technology TOS data">
+          <i class="fa-solid fa-star"></i> Load Golden Test Case
+        </button>
+        <button onclick="resetAll()" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-2 rounded transition flex items-center gap-2">
+          <i class="fa-solid fa-rotate"></i> Reset All
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Validation Banner -->
+  <div class="bg-white border-b shadow-sm sticky top-0 z-50 py-3 px-4 no-print">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="font-bold text-slate-700 text-sm">LIVE STATUS:</span>
+        <div id="status-total-items" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold">
+          <!-- Populated by JS -->
+        </div>
+        <div id="status-rows-on-target" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold">
+          <!-- Populated by JS -->
+        </div>
+        <div id="status-cols-on-target" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-export-excel" onclick="exportToExcel()" class="bg-green-700 hover:bg-green-800 text-white font-medium px-4 py-1.5 rounded text-sm transition flex items-center gap-1.5">
+          <i class="fa-regular fa-file-excel"></i> Export to Excel
+        </button>
+        <button id="btn-export-pdf" onclick="exportToPDF()" class="bg-red-700 hover:bg-red-800 text-white font-medium px-4 py-1.5 rounded text-sm transition flex items-center gap-1.5">
+          <i class="fa-regular fa-file-pdf"></i> Export to PDF
+        </button>
+        <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white font-medium px-4 py-1.5 rounded text-sm transition flex items-center gap-1.5">
+          <i class="fa-solid fa-print"></i> Print View
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
+    
+    <!-- LEFT PANEL: Setup Forms (4 columns) -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+      
+      <!-- Card 1: Header Information -->
+      <section class="bg-white rounded-lg shadow-md border-t-4 border-depedBlue p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-circle-info text-depedBlue text-lg"></i>
+          <h2 class="text-md font-bold text-depedBlue uppercase tracking-wide">1. Test & School Metadata</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-3 text-sm">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Region</label>
+            <input type="text" id="meta-region" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Region V (Bicol)" value="Region V (Bicol)">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Schools Division Office</label>
+            <input type="text" id="meta-division" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Schools Division Office of Legazpi City" value="Schools Division Office of Legazpi City">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">School Name</label>
+            <input type="text" id="meta-school" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="School Name" value="Banquerohan National High School">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">School Year</label>
+              <input type="text" id="meta-sy" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="SY" value="2026-2027">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Term</label>
+              <select id="meta-term" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none bg-white">
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2" selected>Term 2</option>
+                <option value="Term 3">Term 3</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Grade</label>
+              <input type="text" id="meta-grade" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Grade 8" value="Grade 8">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
+              <input type="text" id="meta-subject" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Creative Technology" value="Creative Technology">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">No. of Items</label>
+              <input type="number" id="meta-total-items" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. 40" min="1" value="40">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Learning Area (Determines Bloom's weights)</label>
+            <select id="meta-learning-area" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none bg-white font-medium">
+              <option value="" disabled>-- Select Learning Area --</option>
+              <option value="English & Filipino">English & Filipino</option>
+              <option value="Math">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="Araling Panlipunan">Araling Panlipunan</option>
+              <option value="TLE/EPP" selected>TLE / EPP</option>
+              <option value="MAPEH/MSEP">MAPEH / MSEP</option>
+              <option value="EsP">Edukasyon sa Pagpapakatao (EsP)</option>
+            </select>
+            <div id="learning-area-weights" class="mt-2 grid grid-cols-6 gap-1 text-[10px] text-center bg-slate-50 p-2 rounded border">
+              <!-- Inline display of chosen percentages -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 2: Learning Competencies -->
+      <section class="bg-white rounded-lg shadow-md border-t-4 border-depedBlue p-5 flex-1 flex flex-col min-h-[350px]">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-depedBlue text-lg"></i>
+            <h2 class="text-md font-bold text-depedBlue uppercase tracking-wide">2. Competencies & Days</h2>
+          </div>
+          <button onclick="addCompetency()" class="bg-depedBlue hover:bg-depedBlue-light text-white font-bold text-xs px-2.5 py-1.5 rounded shadow transition flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> Add Competency
+          </button>
+        </div>
+        
+        <div id="competency-list-container" class="space-y-3 overflow-y-auto max-h-[400px] flex-1 pr-1">
+          <!-- Dynamically inserted competencies -->
+        </div>
+
+        <div class="mt-4 pt-3 border-t flex justify-between items-center text-sm font-semibold text-slate-700 bg-slate-50 p-2 rounded">
+          <span>Total Days: <span id="summary-total-days" class="text-depedBlue font-bold">0</span></span>
+          <span>Count: <span id="summary-competency-count" class="text-depedBlue font-bold">0</span></span>
+        </div>
+      </section>
+
+      <!-- Card 3: Signatories -->
+      <section class="bg-white rounded-lg shadow-md border-t-4 border-depedBlue p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-file-signature text-depedBlue text-lg"></i>
+          <h2 class="text-md font-bold text-depedBlue uppercase tracking-wide">3. Signatories</h2>
+        </div>
+        <div class="space-y-4 text-xs">
+          <div>
+            <span class="block font-bold text-slate-700 uppercase mb-2">Prepared by (Subject Teacher)</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="sig-prep-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="JUAN DELA CRUZ">
+              <input type="text" id="sig-prep-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="Subject Teacher">
+            </div>
+          </div>
+          <div>
+            <span class="block font-bold text-slate-700 uppercase mb-2">Checked & Reviewed by</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="sig-rev-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="MARIA CLARA">
+              <input type="text" id="sig-rev-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="Subject Coordinator">
+            </div>
+          </div>
+          <div>
+            <span class="block font-bold text-slate-700 uppercase mb-2">Checked & Validated by</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="sig-val-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="DR. ARSENIO PEDRO">
+              <input type="text" id="sig-val-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="OIC, Assistant School Principal">
+            </div>
+          </div>
+          <div>
+            <span class="block font-bold text-slate-700 uppercase mb-2">Noted by (School Head)</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="sig-noted-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="LEONOR VALENZUELA">
+              <input type="text" id="sig-noted-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="School Head">
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT PANEL: Live Interactive TOS Grid & Preview (8 columns) -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+      
+      <div class="bg-white rounded-lg shadow-md border-t-4 border-depedYellow flex-1 flex flex-col overflow-hidden min-h-[500px]">
+        <div class="bg-slate-50 px-5 py-4 border-b flex justify-between items-center flex-wrap gap-2">
+          <div>
+            <h2 class="text-md font-bold text-depedBlue uppercase tracking-wide">4. Live DepEd Table of Specifications</h2>
+            <p class="text-xs text-slate-500">Edit the "Actual Items" directly to customize the distribution. System recalculates on-the-fly!</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="resetAllLocks()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded shadow-sm transition flex items-center gap-1.5">
+              <i class="fa-solid fa-unlock-keyhole"></i> Clear Manual Locks
+            </button>
+          </div>
+        </div>
+
+        <div id="interactive-grid-scroll-wrapper" class="flex-1 p-5 overflow-auto max-w-full">
+          <div id="interactive-grid-placeholder" class="h-full flex flex-col items-center justify-center text-center p-10 text-slate-400">
+            <i class="fa-solid fa-table-list text-6xl mb-4 text-slate-300"></i>
+            <h3 class="font-bold text-lg text-slate-600">No Content Generated Yet</h3>
+            <p class="text-sm max-w-md mt-1">Please select a Learning Area and add at least one Learning Competency with valid teaching days to spin up the computed grid.</p>
+          </div>
+          
+          <div id="interactive-grid-render" class="hidden min-w-[1200px]">
+            <!-- Rendered in JS -->
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- PRINT-READY DOCUMENT PREVIEW (Styled precisely like official Excel export) -->
+  <div id="print-preview-container" class="hidden print:block bg-white p-8 max-w-[14in] mx-auto text-black text-xs">
+    <!-- Clean, pixel-perfect copy of the grid for PDF/Printing -->
+  </div>
+
+  <!-- Global Footer -->
+  <footer class="bg-slate-800 text-slate-400 py-6 text-center text-xs mt-auto no-print border-t border-slate-700">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <span>AI TOS Generator © 2026. Built according to Philippine Department of Education Orders.</span>
+      <span class="flex items-center gap-1.5 text-slate-500">
+        <i class="fa-solid fa-circle-check text-green-500"></i> Local Storage Enabled (Auto-Saves Progress)
+      </span>
+    </div>
+  </footer>
+
+  <!-- Core Javascript Implementation -->
+  <script>
+    // Constants & Reference Data (§2)
+    // TLE/EPP weights are modified to hold performance-based distribution only as requested
+    const DOMAIN_DATA = {
+      "English & Filipino": { "Remembering": 15, "Understanding": 25, "Applying": 25, "Analyzing": 15, "Evaluating": 10, "Creating": 10 },
+      "Math": { "Remembering": 30, "Understanding": 30, "Applying": 15, "Analyzing": 15, "Evaluating": 5, "Creating": 5 },
+      "Science": { "Remembering": 25, "Understanding": 25, "Applying": 20, "Analyzing": 20, "Evaluating": 5, "Creating": 5 },
+      "Araling Panlipunan": { "Remembering": 30, "Understanding": 30, "Applying": 15, "Analyzing": 15, "Evaluating": 5, "Creating": 5 },
+      "TLE/EPP": { "Remembering": 10, "Understanding": 10, "Applying": 25, "Analyzing": 10, "Evaluating": 20, "Creating": 25 },
+      "MAPEH/MSEP": { "Remembering": 10, "Understanding": 10, "Applying": 25, "Analyzing": 10, "Evaluating": 20, "Creating": 25 },
+      "EsP": { "Remembering": 10, "Understanding": 10, "Applying": 20, "Analyzing": 20, "Evaluating": 30, "Creating": 10 }
+    };
+
+    // Columns Display Order in Grid (§2 display mandate)
+    const DISPLAY_DOMAINS = ["Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", "Creating"];
+
+    // App State - Loaded with Initial Sample Data to prevent empty preview page
+    let state = {
+      meta: {
+        region: "Region V (Bicol)",
+        division: "Schools Division Office of Legazpi City",
+        school: "Banquerohan National High School",
+        sy: "2026-2027",
+        term: "Term 2",
+        grade: "Grade 8",
+        subject: "Creative Technology",
+        totalItems: 40,
+        learningArea: "TLE/EPP"
+      },
+      competencies: [
+        { text: "Cite examples of variables in programming", days: 4 },
+        { text: "Describe effects of changing variables", days: 4 },
+        { text: "Write codes using variables", days: 8 }
+      ],
+      signatories: {
+        prepName: "JUAN DELA CRUZ", prepTitle: "Subject Teacher",
+        revName: "MARIA CLARA", revTitle: "Subject Coordinator",
+        valName: "DR. ARSENIO PEDRO", valTitle: "OIC, Assistant School Principal",
+        notedName: "LEONOR VALENZUELA", notedTitle: "School Head"
+      },
+      cellLocks: {},
+      cellActuals: {},
+      testTypes: {} // key: `${rowIdx}-${domain}` -> string
+    };
+
+    // Initialize application on window load
+    window.onload = function() {
+      // Try loading saved state
+      loadSavedProgress();
+      
+      // Bind event listeners to UI
+      setupMetadataListeners();
+      setupSignatoryListeners();
+      
+      // Trigger full reactive render
+      recalculateTOS();
+    };
+
+    // Setup input bindings for direct model mapping
+    function setupMetadataListeners() {
+      const ids = {
+        'meta-region': 'region',
+        'meta-division': 'division',
+        'meta-school': 'school',
+        'meta-sy': 'sy',
+        'meta-term': 'term',
+        'meta-grade': 'grade',
+        'meta-subject': 'subject',
+        'meta-total-items': 'totalItems',
+        'meta-learning-area': 'learningArea'
+      };
+
+      for (let [elementId, key] of Object.entries(ids)) {
+        const el = document.getElementById(elementId);
+        if (!el) continue;
+        
+        // Use 'change' event for selects, 'input' for other text inputs to avoid missed updates
+        const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+        
+        el.addEventListener(eventType, (e) => {
+          let val = e.target.value;
+          if (key === 'totalItems') {
+            val = parseInt(val) || 0;
+            // Clear locks on total items change to prevent conflict
+            state.cellLocks = {};
+            state.cellActuals = {};
+          }
+          state.meta[key] = val;
+          saveProgress();
+          recalculateTOS();
+        });
+      }
+    }
+
+    // Setup input bindings for signatories
+    function setupSignatoryListeners() {
+      const mappings = {
+        'sig-prep-name': 'prepName', 'sig-prep-title': 'prepTitle',
+        'sig-rev-name': 'revName', 'sig-rev-title': 'revTitle',
+        'sig-val-name': 'valName', 'sig-val-title': 'valTitle',
+        'sig-noted-name': 'notedName', 'sig-noted-title': 'notedTitle'
+      };
+      for (let [elementId, key] of Object.entries(mappings)) {
+        const el = document.getElementById(elementId);
+        if (!el) continue;
+        el.addEventListener('input', (e) => {
+          state.signatories[key] = e.target.value;
+          saveProgress();
+        });
+      }
+    }
+
+    // Populate interface from current State
+    function syncStateToUI() {
+      document.getElementById('meta-region').value = state.meta.region || "Region V (Bicol)";
+      document.getElementById('meta-division').value = state.meta.division || "Schools Division Office of Legazpi City";
+      document.getElementById('meta-school').value = state.meta.school || "Banquerohan National High School";
+      document.getElementById('meta-sy').value = state.meta.sy || "2026-2027";
+      document.getElementById('meta-term').value = state.meta.term || "Term 2";
+      document.getElementById('meta-grade').value = state.meta.grade || "Grade 8";
+      document.getElementById('meta-subject').value = state.meta.subject || "Creative Technology";
+      document.getElementById('meta-total-items').value = state.meta.totalItems || 40;
+      document.getElementById('meta-learning-area').value = state.meta.learningArea || "TLE/EPP";
+
+      document.getElementById('sig-prep-name').value = state.signatories.prepName;
+      document.getElementById('sig-prep-title').value = state.signatories.prepTitle;
+      document.getElementById('sig-rev-name').value = state.signatories.revName;
+      document.getElementById('sig-rev-title').value = state.signatories.revTitle;
+      document.getElementById('sig-val-name').value = state.signatories.valName;
+      document.getElementById('sig-val-title').value = state.signatories.valTitle;
+      document.getElementById('sig-noted-name').value = state.signatories.notedName;
+      document.getElementById('sig-noted-title').value = state.signatories.notedTitle;
+
+      renderCompetencies();
+      renderWeightsDisplay();
+    }
+
+    function renderWeightsDisplay() {
+      const container = document.getElementById('learning-area-weights');
+      const la = state.meta.learningArea;
+      if (!la || !DOMAIN_DATA[la]) {
+        container.innerHTML = `<span class="col-span-6 text-slate-400 italic">Select a learning area to inspect domain percentages</span>`;
+        return;
+      }
+      const weights = DOMAIN_DATA[la];
+      container.innerHTML = DISPLAY_DOMAINS.map(d => `
+        <div class="bg-white p-1 rounded border">
+          <div class="font-bold text-slate-700">${weights[d]}%</div>
+          <div class="text-[8px] text-slate-500 uppercase truncate">${d.substring(0,4)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Local Storage Helpers
+    function saveProgress() {
+      localStorage.setItem('deped_ai_tos_state_v3', JSON.stringify(state));
+    }
+
+    function loadSavedProgress() {
+      const stored = localStorage.getItem('deped_ai_tos_state_v3');
+      if (stored) {
+        try {
+          const loadedState = JSON.parse(stored);
+          if (loadedState && loadedState.meta) {
+            // Support migration of old layout format to new Grade and Subject format
+            if (loadedState.meta.grade && loadedState.meta.grade.includes("-")) {
+              const parts = loadedState.meta.grade.split("-");
+              loadedState.meta.grade = parts[0].trim();
+              loadedState.meta.subject = parts[1] ? parts[1].trim() : "Creative Technology";
+            }
+            if (!loadedState.meta.subject) {
+              loadedState.meta.subject = "Creative Technology";
+            }
+            state = loadedState;
+          }
+          syncStateToUI();
+        } catch(e) {
+          console.error("Failed to parse saved state", e);
+        }
+      } else {
+        // First run load, ensure defaults exist
+        syncStateToUI();
+      }
+    }
+
+    function resetAll() {
+      if(confirm("Are you sure you want to reset all inputs? You will lose any unsaved manual adjustments.")) {
+        localStorage.removeItem('deped_ai_tos_state_v3');
+        state = {
+          meta: {
+            region: "Region V (Bicol)",
+            division: "Schools Division Office of Legazpi City",
+            school: "Banquerohan National High School",
+            sy: "2026-2027",
+            term: "Term 2",
+            grade: "Grade 8",
+            subject: "Creative Technology",
+            totalItems: 40,
+            learningArea: "TLE/EPP"
+          },
+          competencies: [
+            { text: "Cite examples of variables in programming", days: 4 },
+            { text: "Describe effects of changing variables", days: 4 },
+            { text: "Write codes using variables", days: 8 }
+          ],
+          signatories: {
+            prepName: "JUAN DELA CRUZ", prepTitle: "Subject Teacher",
+            revName: "MARIA CLARA", revTitle: "Subject Coordinator",
+            valName: "DR. ARSENIO PEDRO", valTitle: "OIC, Assistant School Principal",
+            notedName: "LEONOR VALENZUELA", notedTitle: "School Head"
+          },
+          cellLocks: {},
+          cellActuals: {},
+          testTypes: {}
+        };
+        syncStateToUI();
+        recalculateTOS();
+      }
+    }
+
+    // Load Golden Test Case (§9 from spec)
+    function loadGoldenTestCase() {
+      state.meta = {
+        region: "Region V (Bicol)",
+        division: "Schools Division Office of Legazpi City",
+        school: "Banquerohan National High School",
+        sy: "2026-2027",
+        term: "Term 2",
+        grade: "Grade 8",
+        subject: "Creative Technology",
+        totalItems: 40,
+        learningArea: "TLE/EPP" // Load standard TLE/EPP (which has performance-based weights 10-10-25-10-20-25)
+      };
+
+      // Exact 11 competencies from spec §9
+      state.competencies = [
+        { text: "Cite examples of variables in programming", days: 4 },
+        { text: "Describe effects of changing variables", days: 4 },
+        { text: "Write codes using variables", days: 8 },
+        { text: "Describe control structure use", days: 2 },
+        { text: "Write codes using control structures", days: 8 },
+        { text: "Identify how modules are used", days: 4 },
+        { text: "Create new procedures", days: 4 },
+        { text: "Make code readable (comments/docs)", days: 3 },
+        { text: "Explain how one's code works", days: 2 },
+        { text: "Correct code that causes an error", days: 4 },
+        { text: "Analyze problem dimensions iteratively", days: 2 }
+      ];
+
+      state.signatories = {
+        prepName: "JUAN DELA CRUZ", prepTitle: "Subject Teacher",
+        revName: "MARIA CLARA", revTitle: "Subject Coordinator",
+        valName: "DR. ARSENIO PEDRO", valTitle: "OIC, Assistant School Principal",
+        notedName: "LEONOR VALENZUELA", notedTitle: "School Head"
+      };
+
+      // Clear any manual cell locks for a pristine calculation check
+      state.cellLocks = {};
+      state.cellActuals = {};
+      state.testTypes = {};
+
+      syncStateToUI();
+      recalculateTOS();
+    }
+
+    // Competencies Dynamic CRUD Operations
+    function addCompetency(text = "", days = 0) {
+      state.competencies.push({ text, days });
+      saveProgress();
+      renderCompetencies();
+      recalculateTOS();
+    }
+
+    // Remove Competency
+    function removeCompetency(index) {
+      state.competencies.splice(index, 1);
+      
+      // Cleanup locks corresponding to the deleted index
+      delete state.cellLocks[index];
+      delete state.cellActuals[index];
+      
+      saveProgress();
+      renderCompetencies();
+      recalculateTOS();
+    }
+
+    function updateCompetencyText(index, value) {
+      state.competencies[index].text = value;
+      saveProgress();
+    }
+
+    function updateCompetencyDays(index, value) {
+      state.competencies[index].days = parseFloat(value) || 0;
+      saveProgress();
+      recalculateTOS();
+    }
+
+    function renderCompetencies() {
+      const container = document.getElementById('competency-list-container');
+      container.innerHTML = "";
+
+      if (state.competencies.length === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed rounded text-slate-400">
+            <i class="fa-solid fa-graduation-cap text-3xl mb-2 text-slate-300"></i>
+            <p class="text-xs">No learning competencies added yet.</p>
+          </div>
+        `;
+        document.getElementById('summary-total-days').innerText = 0;
+        document.getElementById('summary-competency-count').innerText = 0;
+        return;
+      }
+
+      let totalDays = 0;
+      state.competencies.forEach((comp, idx) => {
+        totalDays += comp.days;
+        const row = document.createElement('div');
+        row.className = "flex gap-2 items-center bg-slate-50 p-2.5 rounded border border-slate-200 shadow-sm relative group";
+        row.innerHTML = `
+          <div class="flex-1">
+            <textarea oninput="updateCompetencyText(${idx}, this.value)" class="w-full bg-white px-2 py-1 border rounded text-xs focus:ring-1 focus:ring-depedBlue resize-none h-12" placeholder="Describe the learning competency...">${comp.text}</textarea>
+          </div>
+          <div class="w-20">
+            <label class="block text-[9px] text-slate-500 font-bold uppercase mb-0.5">Days</label>
+            <input type="number" step="0.5" min="0" oninput="updateCompetencyDays(${idx}, this.value)" class="w-full text-center bg-white px-2 py-1 border rounded text-xs font-semibold focus:ring-1 focus:ring-depedBlue" value="${comp.days || ''}">
+          </div>
+          <button onclick="removeCompetency(${idx})" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition" title="Delete Competency">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById('summary-total-days').innerText = totalDays;
+      document.getElementById('summary-competency-count').innerText = state.competencies.length;
+    }
+
+
+    // ==========================================
+    // COMPUTATION ENGINE (§3)
+    // ==========================================
+
+    function largestRemainderRounding(rawWeights, totalTarget) {
+      if (totalTarget <= 0 || rawWeights.length === 0) {
+        return rawWeights.map(() => 0);
+      }
+      
+      const floors = rawWeights.map(v => Math.floor(v));
+      const remainders = rawWeights.map((v, i) => ({
+        idx: i,
+        rem: v - Math.floor(v),
+        raw: v
+      }));
+
+      let sumFloors = floors.reduce((a, b) => a + b, 0);
+      let leftover = totalTarget - sumFloors;
+
+      remainders.sort((a, b) => {
+        if (Math.abs(a.rem - b.rem) < 1e-9) {
+          return b.raw - a.raw;
+        }
+        return b.rem - a.rem;
+      });
+
+      const actuals = [...floors];
+      for (let i = 0; i < leftover; i++) {
+        if (i < remainders.length) {
+          actuals[remainders[i].idx] += 1;
+        }
+      }
+      return actuals;
+    }
+
+    function recalculateTOS() {
+      const la = state.meta.learningArea;
+      const totalItems = state.meta.totalItems;
+      const comps = state.competencies;
+
+      // Ensure the percentages preview updates alongside state changes
+      renderWeightsDisplay();
+
+      // Guard conditions
+      if (!la || !DOMAIN_DATA[la] || totalItems <= 0 || comps.length === 0) {
+        document.getElementById('interactive-grid-placeholder').classList.remove('hidden');
+        document.getElementById('interactive-grid-render').classList.add('hidden');
+        updateValidationBanner(false, "Incomplete Configuration", "Please specify Learning Area, competencies, and total items to compute.");
+        return;
+      }
+
+      const totalDays = comps.reduce((sum, c) => sum + c.days, 0);
+      if (totalDays <= 0) {
+        document.getElementById('interactive-grid-placeholder').classList.remove('hidden');
+        document.getElementById('interactive-grid-render').classList.add('hidden');
+        updateValidationBanner(false, "Zero Days", "Total teaching days must be greater than zero.");
+        return;
+      }
+
+      document.getElementById('interactive-grid-placeholder').classList.add('hidden');
+      document.getElementById('interactive-grid-render').classList.remove('hidden');
+
+      // --- STEP 1: Competency weights and expected items (row totals) ---
+      const expectedRowItemsRaw = comps.map(c => (c.days / totalDays) * totalItems);
+      const rowTargets = largestRemainderRounding(expectedRowItemsRaw, totalItems);
+
+      // --- STEP 2: Domain weights and column totals ---
+      const domainPct = DOMAIN_DATA[la];
+      const domainRawWeights = DISPLAY_DOMAINS.map(d => (domainPct[d] / 100) * totalItems);
+      const colTargets = largestRemainderRounding(domainRawWeights, totalItems);
+
+      // --- STEP 3: Per-cell tentative value ---
+      const tentative = [];
+      for (let i = 0; i < comps.length; i++) {
+        tentative[i] = {};
+        DISPLAY_DOMAINS.forEach(d => {
+          tentative[i][d] = rowTargets[i] * (domainPct[d] / 100);
+        });
+      }
+
+      // --- STEP 4: Matrix Rounding (incorporating locks & manual edits) ---
+      let actualCells = [];
+      for (let i = 0; i < comps.length; i++) {
+        actualCells[i] = {};
+        DISPLAY_DOMAINS.forEach(d => {
+          if (state.cellLocks[i] && state.cellLocks[i][d]) {
+            actualCells[i][d] = state.cellActuals[i][d] || 0;
+          } else {
+            actualCells[i][d] = Math.floor(tentative[i][d]);
+          }
+        });
+      }
+
+      // Dynamic Step 4a: Allocation of remaining unlocked capacity
+      let effectiveRowTargets = [];
+      let effectiveColTargets = {};
+
+      for (let i = 0; i < comps.length; i++) {
+        let lockedSum = 0;
+        DISPLAY_DOMAINS.forEach(d => {
+          if (state.cellLocks[i] && state.cellLocks[i][d]) {
+            lockedSum += actualCells[i][d];
+          }
+        });
+        effectiveRowTargets[i] = rowTargets[i] - lockedSum;
+      }
+
+      DISPLAY_DOMAINS.forEach(d => {
+        let lockedSum = 0;
+        for (let i = 0; i < comps.length; i++) {
+          if (state.cellLocks[i] && state.cellLocks[i][d]) {
+            lockedSum += actualCells[i][d];
+          }
+        }
+        let colIdx = DISPLAY_DOMAINS.indexOf(d);
+        effectiveColTargets[d] = colTargets[colIdx] - lockedSum;
+      });
+
+      let overlockWarning = false;
+      for (let i = 0; i < comps.length; i++) {
+        if (effectiveRowTargets[i] < 0) overlockWarning = true;
+      }
+      DISPLAY_DOMAINS.forEach(d => {
+        if (effectiveColTargets[d] < 0) overlockWarning = true;
+      });
+
+      if (!overlockWarning) {
+        let changing = true;
+        while (changing) {
+          changing = false;
+
+          let candidates = [];
+          for (let i = 0; i < comps.length; i++) {
+            DISPLAY_DOMAINS.forEach(d => {
+              const isLocked = state.cellLocks[i] && state.cellLocks[i][d];
+              if (!isLocked) {
+                const currentVal = actualCells[i][d];
+                const floorVal = Math.floor(tentative[i][d]);
+                const upperLimit = Math.ceil(tentative[i][d]);
+                
+                const remRow = effectiveRowTargets[i] - getUnlockedRowSum(actualCells, i);
+                const remCol = effectiveColTargets[d] - getUnlockedColSum(actualCells, d);
+
+                if (currentVal < upperLimit && remRow > 0 && remCol > 0) {
+                  candidates.push({
+                    rowIdx: i,
+                    domain: d,
+                    remainder: tentative[i][d] - floorVal,
+                    rawVal: tentative[i][d],
+                    displayOrderIdx: DISPLAY_DOMAINS.indexOf(d)
+                  });
+                }
+              }
+            });
+          }
+
+          if (candidates.length > 0) {
+            candidates.sort((a, b) => {
+              if (Math.abs(a.remainder - b.remainder) > 1e-9) {
+                return b.remainder - a.remainder;
+              }
+              if (Math.abs(a.rawVal - b.rawVal) > 1e-9) {
+                return b.rawVal - a.rawVal;
+              }
+              return a.displayOrderIdx - b.displayOrderIdx;
+            });
+
+            const top = candidates[0];
+            actualCells[top.rowIdx][top.domain] += 1;
+            changing = true;
+          }
+        }
+      }
+
+      // Check if grid fails to balance
+      let finalActualSum = 0;
+      let finalRowSums = comps.map((_, i) => 0);
+      let finalColSums = {};
+      DISPLAY_DOMAINS.forEach(d => { finalColSums[d] = 0; });
+
+      for (let i = 0; i < comps.length; i++) {
+        DISPLAY_DOMAINS.forEach(d => {
+          const val = actualCells[i][d];
+          finalActualSum += val;
+          finalRowSums[i] += val;
+          finalColSums[d] += val;
+        });
+      }
+
+      let rowMatchCount = 0;
+      for (let i = 0; i < comps.length; i++) {
+        if (finalRowSums[i] === rowTargets[i]) rowMatchCount++;
+      }
+
+      let colMatchCount = 0;
+      DISPLAY_DOMAINS.forEach((d, idx) => {
+        if (finalColSums[d] === colTargets[idx]) colMatchCount++;
+      });
+
+      const grandTotalValid = (finalActualSum === totalItems);
+      const isPerfectModel = grandTotalValid && (rowMatchCount === comps.length) && (colMatchCount === DISPLAY_DOMAINS.length);
+
+      // --- STEP 5: Item sequential numbering & placement ---
+      let testPlacements = [];
+      let itemCounter = 1;
+
+      for (let i = 0; i < comps.length; i++) {
+        testPlacements[i] = {};
+        DISPLAY_DOMAINS.forEach(d => {
+          const count = actualCells[i][d];
+          if (count > 0) {
+            const start = itemCounter;
+            const end = itemCounter + count - 1;
+            testPlacements[i][d] = (count === 1) ? `${start}` : `${start}-${end}`;
+            itemCounter += count;
+          } else {
+            testPlacements[i][d] = "";
+          }
+        });
+      }
+
+      // Update Live Interactive Grid & Print Mirror UI
+      renderTOSGrid(
+        comps, rowTargets, colTargets, expectedRowItemsRaw, domainPct,
+        tentative, actualCells, testPlacements, finalRowSums, finalColSums, finalActualSum
+      );
+
+      // Update Top Validation Panel
+      let statusMsg = "";
+      if (overlockWarning) {
+        statusMsg = "Warning: Manual lock sum exceeds bounds!";
+      } else if (!grandTotalValid) {
+        statusMsg = `Mismatch error: Exam total is ${finalActualSum} instead of ${totalItems}`;
+      } else if (!isPerfectModel) {
+        statusMsg = "Soft mismatch: Adjust manual allocations to balance row/col targets.";
+      } else {
+        statusMsg = "All specifications satisfied perfectly.";
+      }
+      updateValidationBanner(isPerfectModel, grandTotalValid, statusMsg, totalItems, finalActualSum, rowMatchCount, comps.length, colMatchCount, DISPLAY_DOMAINS.length);
+    }
+
+    // Unlocked sums retrieval helper
+    function getUnlockedRowSum(cells, rIdx) {
+      let sum = 0;
+      DISPLAY_DOMAINS.forEach(d => {
+        if (!(state.cellLocks[rIdx] && state.cellLocks[rIdx][d])) {
+          sum += cells[rIdx][d];
+        }
+      });
+      return sum;
+    }
+
+    function getUnlockedColSum(cells, d) {
+      let sum = 0;
+      for (let i = 0; i < state.competencies.length; i++) {
+        if (!(state.cellLocks[i] && state.cellLocks[i][d])) {
+          sum += cells[i][d];
+        }
+      }
+      return sum;
+    }
+
+    // Validation UI controller
+    function updateValidationBanner(isPerfect, grandTotalValid, message, targetItems, actualItems, rowsMatched, totalRows, colsMatched, totalCols) {
+      const bannerItems = document.getElementById('status-total-items');
+      const bannerRows = document.getElementById('status-rows-on-target');
+      const bannerCols = document.getElementById('status-cols-on-target');
+
+      // 1. Grand Total Check
+      if (grandTotalValid === true && actualItems === targetItems) {
+        bannerItems.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800";
+        bannerItems.innerHTML = `<i class="fa-solid fa-circle-check"></i> Total Items: ${actualItems}/${targetItems} ✓`;
+      } else if (grandTotalValid === false) {
+        bannerItems.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 animate-pulse";
+        bannerItems.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Total Items: ${actualItems}/${targetItems}`;
+      } else {
+        bannerItems.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800";
+        bannerItems.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Setup Pending`;
+      }
+
+      // 2. Rows targets check
+      if (rowsMatched === totalRows && totalRows > 0) {
+        bannerRows.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800";
+        bannerRows.innerHTML = `<i class="fa-solid fa-circle-check"></i> Rows: ${rowsMatched}/${totalRows} ✓`;
+      } else if (totalRows > 0) {
+        bannerRows.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700";
+        bannerRows.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Rows: ${rowsMatched}/${totalRows}`;
+      } else {
+        bannerRows.innerHTML = "";
+      }
+
+      // 3. Cols targets check
+      if (colsMatched === totalCols && totalCols > 0) {
+        bannerCols.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800";
+        bannerCols.innerHTML = `<i class="fa-solid fa-circle-check"></i> Columns: ${colsMatched}/${totalCols} ✓`;
+      } else if (totalCols > 0) {
+        bannerCols.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700";
+        bannerCols.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Columns: ${colsMatched}/${totalCols}`;
+      } else {
+        bannerCols.innerHTML = "";
+      }
+
+      // Handle export locking (Strict enforcement: sum must match target item count to allow export)
+      const excelBtn = document.getElementById('btn-export-excel');
+      const pdfBtn = document.getElementById('btn-export-pdf');
+      if (grandTotalValid && actualItems === targetItems) {
+        excelBtn.disabled = false;
+        pdfBtn.disabled = false;
+        excelBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        pdfBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      } else {
+        excelBtn.disabled = true;
+        pdfBtn.disabled = true;
+        excelBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        pdfBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+
+    // ==========================================
+    // MANUAL OVERRIDES & LOCKING SYSTEM (§7)
+    // ==========================================
+
+    function lockCell(rowIdx, domain, element) {
+      let val = parseInt(element.value);
+      if (isNaN(val) || val < 0) {
+        val = 0;
+        element.value = 0;
+      }
+
+      if (!state.cellLocks[rowIdx]) state.cellLocks[rowIdx] = {};
+      if (!state.cellActuals[rowIdx]) state.cellActuals[rowIdx] = {};
+
+      state.cellLocks[rowIdx][domain] = true;
+      state.cellActuals[rowIdx][domain] = val;
+
+      saveProgress();
+      recalculateTOS();
+    }
+
+    function unlockCell(rowIdx, domain) {
+      if (state.cellLocks[rowIdx]) {
+        delete state.cellLocks[rowIdx][domain];
+        if (Object.keys(state.cellLocks[rowIdx]).length === 0) {
+          delete state.cellLocks[rowIdx];
+        }
+      }
+      if (state.cellActuals[rowIdx]) {
+        delete state.cellActuals[rowIdx][domain];
+        if (Object.keys(state.cellActuals[rowIdx]).length === 0) {
+          delete state.cellActuals[rowIdx];
+        }
+      }
+      saveProgress();
+      recalculateTOS();
+    }
+
+    function resetAllLocks() {
+      state.cellLocks = {};
+      state.cellActuals = {};
+      saveProgress();
+      recalculateTOS();
+    }
+
+    function changeTestType(rowIdx, domain, value) {
+      state.testTypes[`${rowIdx}-${domain}`] = value;
+      saveProgress();
+      recalculateTOS();
+    }
+
+
+    // ==========================================
+    // RENDERING THE TABLES (§4)
+    // ==========================================
+
+    function generateTOSGridHTML(
+      comps, rowTargets, colTargets, expectedRowItemsRaw, domainPct,
+      tentative, actualCells, testPlacements, finalRowSums, finalColSums, finalActualSum, isPrintView = false
+    ) {
+      const la = state.meta.learningArea;
+      const totalDays = comps.reduce((sum, c) => sum + c.days, 0);
+      const totalItems = state.meta.totalItems;
+
+      // Taxonomy Super-header rendering helper
+      const taxonomySuperHeader = DISPLAY_DOMAINS.map(d => `
+        <th colspan="4" class="text-center bg-depedBlue text-white text-[11px] py-1 border-r border-depedBlue-light font-bold uppercase tracking-wider">${d} (${domainPct[d]}%)</th>
+      `).join('');
+
+      // Taxonomy Sub-headers: Tentative, Actual, Placement, Type
+      const taxonomySubHeaders = DISPLAY_DOMAINS.map(() => `
+        <th class="text-[9px] font-bold text-slate-700 bg-slate-100 border-r border-b text-center px-1 py-1 w-12">Tent.</th>
+        <th class="text-[9px] font-bold text-slate-700 bg-amber-50 border-r border-b text-center px-1 py-1 w-12">Act.</th>
+        <th class="text-[9px] font-bold text-slate-700 bg-slate-100 border-r border-b text-center px-1 py-1 w-14">Placement</th>
+        <th class="text-[9px] font-bold text-slate-700 bg-slate-100 border-r border-b text-center px-1 py-1 w-12">Type</th>
+      `).join('');
+
+      // Rows Generation
+      let rowsHTML = "";
+      comps.forEach((comp, idx) => {
+        const expectedItems = expectedRowItemsRaw[idx].toFixed(2);
+        const actualRowTarget = rowTargets[idx];
+        const finalSum = finalRowSums[idx];
+        
+        // Highlight mismatch rows
+        const rowErrorClass = (finalSum !== actualRowTarget) ? "bg-red-50 border-l-4 border-l-red-500" : "";
+
+        let domainsCellsHTML = "";
+        DISPLAY_DOMAINS.forEach(d => {
+          const tentVal = tentative[idx][d].toFixed(2);
+          const actVal = actualCells[idx][d];
+          const isLocked = state.cellLocks[idx] && state.cellLocks[idx][d];
+          const placement = testPlacements[idx][d];
+          
+          const testTypeVal = state.testTypes[`${idx}-${d}`] || "MC";
+          const dropdownDisabled = actVal === 0 ? "disabled" : "";
+
+          const lockBadge = isLocked 
+            ? `<button onclick="unlockCell(${idx}, '${d}')" class="text-amber-600 hover:text-amber-800 transition text-[9px]" title="Override Active. Click to clear limit"><i class="fa-solid fa-thumbtack"></i></button>`
+            : "";
+
+          const cellBg = isLocked ? "bg-amber-100" : "bg-white";
+
+          if (isPrintView) {
+            domainsCellsHTML += `
+              <td class="text-center border-r border-b p-1 text-[10px] text-slate-500">${tentVal}</td>
+              <td class="text-center border-r border-b p-1 text-[10px] font-bold ${cellBg}">${actVal}</td>
+              <td class="text-center border-r border-b p-1 text-[10px] font-semibold">${placement || '-'}</td>
+              <td class="text-center border-r border-b p-1 text-[10px]">${actVal > 0 ? testTypeVal : ''}</td>
+            `;
+          } else {
+            domainsCellsHTML += `
+              <td class="text-center border-r border-b p-1 text-[10px] text-slate-500">${tentVal}</td>
+              <td class="text-center border-r border-b p-1 text-[10px] relative ${cellBg}">
+                <div class="flex items-center justify-center gap-1">
+                  <input type="number" min="0" onchange="lockCell(${idx}, '${d}', this)" class="w-10 text-center bg-transparent border-b border-dashed border-slate-300 font-bold text-slate-800 focus:border-depedBlue outline-none" value="${actVal}">
+                  ${lockBadge}
+                </div>
+              </td>
+              <td class="text-center border-r border-b p-1 text-[10px] font-semibold text-slate-700 bg-slate-50">${placement || '-'}</td>
+              <td class="text-center border-r border-b p-1 text-[10px] bg-slate-50">
+                <select onchange="changeTestType(${idx}, '${d}', this.value)" ${dropdownDisabled} class="text-[9px] bg-transparent font-medium border-none text-slate-600 focus:ring-0 outline-none w-full">
+                  <option value="MC" ${testTypeVal==='MC'?'selected':''}>MC</option>
+                  <option value="MT" ${testTypeVal==='MT'?'selected':''}>MT</option>
+                  <option value="TF" ${testTypeVal==='TF'?'selected':''}>TF</option>
+                  <option value="I" ${testTypeVal==='I'?'selected':''}>I</option>
+                  <option value="PS" ${testTypeVal==='PS'?'selected':''}>PS</option>
+                  <option value="E" ${testTypeVal==='E'?'selected':''}>E</option>
+                </select>
+              </td>
+            `;
+          }
+        });
+
+        rowsHTML += `
+          <tr class="hover:bg-slate-50 transition ${rowErrorClass}">
+            <td class="border-l border-r border-b p-2 font-medium text-[11px] text-slate-700 max-w-xs break-words">${comp.text}</td>
+            <td class="text-center border-r border-b p-1 text-[11px] font-semibold">${comp.days}</td>
+            <td class="text-center border-r border-b p-1 text-[11px] text-slate-500">${((comp.days / totalDays) * 100).toFixed(1)}%</td>
+            ${domainsCellsHTML}
+            <td class="text-center border-r border-b p-1 text-[11px] text-slate-500">${expectedItems}</td>
+            <td class="text-center border-r border-b p-1 text-[11px] font-bold text-depedBlue bg-slate-50">${finalSum} / ${actualRowTarget}</td>
+          </tr>
+        `;
+      });
+
+      // Domains Column Sums Calculation
+      let footerDomainsHTML = "";
+      DISPLAY_DOMAINS.forEach((d, idx) => {
+        const colActualSum = finalColSums[d];
+        const colTarget = colTargets[idx];
+        const isMatched = (colActualSum === colTarget);
+        const colStatusClass = isMatched ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50";
+
+        footerDomainsHTML += `
+          <td class="text-center border-r border-b bg-slate-50 py-1.5 font-bold text-[10px] text-slate-400">Total:</td>
+          <td class="text-center border-r border-b py-1.5 font-extrabold text-[11px] ${colStatusClass}">${colActualSum} / ${colTarget}</td>
+          <td colspan="2" class="border-r border-b bg-slate-50"></td>
+        `;
+      });
+
+      // Top Header Block Section (§4.1)
+      const headerBlockHTML = `
+        <div class="text-center font-serif leading-relaxed mb-6">
+          <h2 class="text-sm font-semibold tracking-wide uppercase text-slate-800">Republic of the Philippines</h2>
+          <h1 class="text-lg font-bold text-depedBlue uppercase tracking-widest leading-normal">Department of Education</h1>
+          <h3 class="text-xs font-semibold uppercase text-slate-600">${state.meta.region}</h3>
+          <h3 class="text-xs font-semibold uppercase text-slate-600">${state.meta.division}</h3>
+          <h3 class="text-xs text-slate-500 mt-0.5">${state.meta.school}</h3>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-y-1.5 gap-x-6 text-[11px] font-semibold border-y py-3 mb-4 text-slate-700">
+          <div><span class="text-slate-400 uppercase">School:</span> <span class="text-slate-800">${state.meta.school}</span></div>
+          <div><span class="text-slate-400 uppercase">Grade:</span> <span class="text-slate-800 font-bold">${state.meta.grade || 'N/A'}</span></div>
+          <div><span class="text-slate-400 uppercase">Subject:</span> <span class="text-slate-800 font-bold">${state.meta.subject || 'N/A'}</span></div>
+          <div class="md:text-right"><span class="text-slate-400 uppercase">Term:</span> <span class="text-slate-800 font-bold">${state.meta.term.toUpperCase()}</span></div>
+          <div><span class="text-slate-400 uppercase">School Year:</span> <span class="text-slate-800">${state.meta.sy}</span></div>
+          <div><span class="text-slate-400 uppercase">Learning Area:</span> <span class="text-slate-800 font-bold">${state.meta.learningArea}</span></div>
+          <div class="md:col-span-2 md:text-right"><span class="text-slate-400 uppercase">No. of Items:</span> <span class="text-slate-800 font-bold">${state.meta.totalItems}</span></div>
+        </div>
+      `;
+
+      // Legend Row (§4.3)
+      const legendHTML = `
+        <div class="mt-4 p-2 border bg-slate-50 rounded text-[9px] text-slate-600 leading-normal">
+          <strong class="text-slate-800 uppercase mr-1">Test Type Legend:</strong>
+          <span class="inline-block mr-3"><span class="font-bold">MC</span> - Multiple Choice</span>
+          <span class="inline-block mr-3"><span class="font-bold">MT</span> - Matching Type</span>
+          <span class="inline-block mr-3"><span class="font-bold">TF</span> - True/False</span>
+          <span class="inline-block mr-3"><span class="font-bold">I</span> - Identification</span>
+          <span class="inline-block mr-3"><span class="font-bold">PS</span> - Problem Solving</span>
+          <span class="inline-block"><span class="font-bold">E</span> - Essay</span>
+        </div>
+      `;
+
+      // Formula Notes (§4.4)
+      const formulaNotesHTML = `
+        <div class="mt-2 text-[8px] text-slate-400 italic">
+          Formula notes: Weight = no. of days / total no. of days | Total No. of Items = weight &times; no. of items | Item No. = total no. of items &times; percentage
+        </div>
+      `;
+
+      // Signatory Block (§4.5)
+      const signatoryHTML = `
+        <div class="mt-8 grid grid-cols-4 gap-6 text-[11px] border-t pt-5">
+          <div>
+            <span class="block text-slate-500 uppercase font-semibold text-[9px] mb-8">Prepared by:</span>
+            <span class="block font-bold border-b pb-1 text-slate-800">${(state.signatories.prepName || '').toUpperCase()}</span>
+            <span class="block text-slate-500 mt-1">${state.signatories.prepTitle}</span>
+          </div>
+          <div>
+            <span class="block text-slate-500 uppercase font-semibold text-[9px] mb-8">Checked and Reviewed by:</span>
+            <span class="block font-bold border-b pb-1 text-slate-800">${(state.signatories.revName || '').toUpperCase()}</span>
+            <span class="block text-slate-500 mt-1">${state.signatories.revTitle}</span>
+          </div>
+          <div>
+            <span class="block text-slate-500 uppercase font-semibold text-[9px] mb-8">Checked and Validated by:</span>
+            <span class="block font-bold border-b pb-1 text-slate-800">${(state.signatories.valName || '').toUpperCase()}</span>
+            <span class="block text-slate-500 mt-1">${state.signatories.valTitle}</span>
+          </div>
+          <div>
+            <span class="block text-slate-500 uppercase font-semibold text-[9px] mb-8">Noted by:</span>
+            <span class="block font-bold border-b pb-1 text-slate-800">${(state.signatories.notedName || '').toUpperCase()}</span>
+            <span class="block text-slate-500 mt-1">${state.signatories.notedTitle}</span>
+          </div>
+        </div>
+      `;
+
+      // Master Assembler
+      return `
+        ${headerBlockHTML}
+        
+        <table class="w-full border-collapse border text-left text-xs tracking-tight bg-white shadow-sm">
+          <thead>
+            <tr>
+              <th rowspan="2" class="text-left bg-depedBlue text-white text-[11px] px-3 py-2 border-r border-b border-depedBlue-light font-bold w-1/5">Learning Competency</th>
+              <th rowspan="2" class="text-center bg-depedBlue text-white text-[11px] px-1 py-2 border-r border-b border-depedBlue-light font-bold w-12">No. of Days</th>
+              <th rowspan="2" class="text-center bg-depedBlue text-white text-[11px] px-1 py-2 border-r border-b border-depedBlue-light font-bold w-12">% Weight</th>
+              ${taxonomySuperHeader}
+              <th rowspan="2" class="text-center bg-depedBlue text-white text-[11px] px-1 py-2 border-r border-b border-depedBlue-light font-bold w-16">Expected No. of Items</th>
+              <th rowspan="2" class="text-center bg-depedBlue text-white text-[11px] px-1 py-2 border-r border-b border-depedBlue-light font-bold w-16">Actual No. of Items</th>
+            </tr>
+            <tr>
+              ${taxonomySubHeaders}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+            
+            <!-- TOTAL row -->
+            <tr class="font-bold bg-slate-50 border-t-2 border-slate-300">
+              <td class="border-l border-r border-b p-2 font-bold text-slate-800 uppercase">TOTAL</td>
+              <td class="text-center border-r border-b p-1 text-[11px] text-slate-800">${totalDays}</td>
+              <td class="text-center border-r border-b p-1 text-[11px] text-slate-800">100.0%</td>
+              ${footerDomainsHTML}
+              <td class="text-center border-r border-b p-1 text-[11px] text-slate-800 font-semibold">${totalItems.toFixed(2)}</td>
+              <td class="text-center border-r border-b p-1 text-[11px] font-extrabold text-depedBlue bg-slate-100">${finalActualSum} / ${totalItems}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${legendHTML}
+        ${formulaNotesHTML}
+        ${signatoryHTML}
+      `;
+    }
+
+    function renderTOSGrid(
+      comps, rowTargets, colTargets, expectedRowItemsRaw, domainPct,
+      tentative, actualCells, testPlacements, finalRowSums, finalColSums, finalActualSum
+    ) {
+      // 1. Build interactive interface HTML
+      const interactiveHTML = generateTOSGridHTML(
+        comps, rowTargets, colTargets, expectedRowItemsRaw, domainPct,
+        tentative, actualCells, testPlacements, finalRowSums, finalColSums, finalActualSum, false
+      );
+      document.getElementById('interactive-grid-render').innerHTML = interactiveHTML;
+
+      // 2. Build print view/PDF mirror HTML
+      const printHTML = generateTOSGridHTML(
+        comps, rowTargets, colTargets, expectedRowItemsRaw, domainPct,
+        tentative, actualCells, testPlacements, finalRowSums, finalColSums, finalActualSum, true
+      );
+      document.getElementById('print-preview-container').innerHTML = printHTML;
+    }
+
+
+    // ==========================================
+    // EXPORT HANDLERS (§6)
+    // ==========================================
+
+    function exportToExcel() {
+      const la = state.meta.learningArea;
+      const totalItems = state.meta.totalItems;
+      const comps = state.competencies;
+
+      if (!la || totalItems <= 0 || comps.length === 0) return;
+
+      const wb = XLSX.utils.book_new();
+      
+      const totalDays = comps.reduce((sum, c) => sum + c.days, 0);
+      const domainPct = DOMAIN_DATA[la];
+
+      const expectedRowItemsRaw = comps.map(c => (c.days / totalDays) * totalItems);
+      const rowTargets = largestRemainderRounding(expectedRowItemsRaw, totalItems);
+      const colTargets = largestRemainderRounding(DISPLAY_DOMAINS.map(d => (domainPct[d] / 100) * totalItems), totalItems);
+
+      const tentative = [];
+      const actualCells = [];
+      const testPlacements = [];
+      let itemCounter = 1;
+
+      for (let i = 0; i < comps.length; i++) {
+        tentative[i] = {};
+        actualCells[i] = {};
+        testPlacements[i] = {};
+        
+        DISPLAY_DOMAINS.forEach(d => {
+          tentative[i][d] = rowTargets[i] * (domainPct[d] / 100);
+          if (state.cellLocks[i] && state.cellLocks[i][d]) {
+            actualCells[i][d] = state.cellActuals[i][d] || 0;
+          } else {
+            actualCells[i][d] = Math.floor(tentative[i][d]);
+          }
+        });
+      }
+
+      let effectiveRowTargets = [];
+      let effectiveColTargets = {};
+
+      for (let i = 0; i < comps.length; i++) {
+        let lockedSum = 0;
+        DISPLAY_DOMAINS.forEach(d => {
+          if (state.cellLocks[i] && state.cellLocks[i][d]) lockedSum += actualCells[i][d];
+        });
+        effectiveRowTargets[i] = rowTargets[i] - lockedSum;
+      }
+
+      DISPLAY_DOMAINS.forEach(d => {
+        let lockedSum = 0;
+        for (let i = 0; i < comps.length; i++) {
+          if (state.cellLocks[i] && state.cellLocks[i][d]) lockedSum += actualCells[i][d];
+        }
+        let colIdx = DISPLAY_DOMAINS.indexOf(d);
+        effectiveColTargets[d] = colTargets[colIdx] - lockedSum;
+      });
+
+      let changing = true;
+      while (changing) {
+        changing = false;
+        let candidates = [];
+        for (let i = 0; i < comps.length; i++) {
+          DISPLAY_DOMAINS.forEach(d => {
+            const isLocked = state.cellLocks[i] && state.cellLocks[i][d];
+            if (!isLocked) {
+              const currentVal = actualCells[i][d];
+              const floorVal = Math.floor(tentative[i][d]);
+              const upperLimit = Math.ceil(tentative[i][d]);
+              const remRow = effectiveRowTargets[i] - getUnlockedRowSum(actualCells, i);
+              const remCol = effectiveColTargets[d] - getUnlockedColSum(actualCells, d);
+
+              if (currentVal < upperLimit && remRow > 0 && remCol > 0) {
+                candidates.push({
+                  rowIdx: i,
+                  domain: d,
+                  remainder: tentative[i][d] - floorVal,
+                  rawVal: tentative[i][d],
+                  displayOrderIdx: DISPLAY_DOMAINS.indexOf(d)
+                });
+              }
+            }
+          });
+        }
+
+        if (candidates.length > 0) {
+          candidates.sort((a, b) => {
+            if (Math.abs(a.remainder - b.remainder) > 1e-9) return b.remainder - a.remainder;
+            if (Math.abs(a.rawVal - b.rawVal) > 1e-9) return b.rawVal - a.rawVal;
+            return a.displayOrderIdx - b.displayOrderIdx;
+          });
+          const top = candidates[0];
+          actualCells[top.rowIdx][top.domain] += 1;
+          changing = true;
+        }
+      }
+
+      // Recalculate placements
+      for (let i = 0; i < comps.length; i++) {
+        DISPLAY_DOMAINS.forEach(d => {
+          const count = actualCells[i][d];
+          if (count > 0) {
+            const start = itemCounter;
+            const end = itemCounter + count - 1;
+            testPlacements[i][d] = (count === 1) ? `${start}` : `${start}-${end}`;
+            itemCounter += count;
+          } else {
+            testPlacements[i][d] = "";
+          }
+        });
+      }
+
+      const rows = [];
+      
+      // Merged Header rows
+      rows.push(["Republic of the Philippines"]);
+      rows.push(["Department of Education"]);
+      rows.push([state.meta.region]);
+      rows.push([state.meta.division]);
+      rows.push([state.meta.school]);
+      rows.push([]); // blank
+
+      // Metadata properties
+      rows.push(["School Name:", state.meta.school, "", "", "", "", "Grade:", state.meta.grade, "Subject:", state.meta.subject, "Term:", state.meta.term]);
+      rows.push(["School Year:", state.meta.sy, "", "", "", "", "Learning Area:", la, "", "", "No. of Items:", totalItems]);
+      rows.push([]); // spacer
+
+      // Main Grid Headers:
+      // Row 10: Taxonomy Super-headers
+      const superHeader = ["Learning Competency", "No. of Days", "% Weight"];
+      DISPLAY_DOMAINS.forEach(d => {
+        superHeader.push(`${d.toUpperCase()} (${domainPct[d]}%)`, "", "", "");
+      });
+      superHeader.push("Expected No. of Items", "Actual No. of Items");
+      rows.push(superHeader);
+
+      // Row 11: Taxonomy Sub-headers
+      const subHeader = ["", "", ""];
+      DISPLAY_DOMAINS.forEach(() => {
+        subHeader.push("Tent.", "Act.", "Placement", "Type");
+      });
+      subHeader.push("", "");
+      rows.push(subHeader);
+
+      // Populate competency rows
+      let finalRowSums = comps.map(() => 0);
+      let finalColSums = {};
+      DISPLAY_DOMAINS.forEach(d => { finalColSums[d] = 0; });
+
+      comps.forEach((comp, idx) => {
+        const itemRow = [
+          comp.text,
+          comp.days,
+          parseFloat(((comp.days / totalDays) * 100).toFixed(1)) / 100
+        ];
+
+        let rSum = 0;
+        DISPLAY_DOMAINS.forEach(d => {
+          const act = actualCells[idx][d];
+          itemRow.push(
+            parseFloat(tentative[idx][d].toFixed(2)),
+            act,
+            testPlacements[idx][d] || "",
+            act > 0 ? (state.testTypes[`${idx}-${d}`] || "MC") : ""
+          );
+          rSum += act;
+          finalColSums[d] += act;
+        });
+
+        finalRowSums[idx] = rSum;
+        itemRow.push(parseFloat(expectedRowItemsRaw[idx].toFixed(2)));
+        itemRow.push(rSum);
+        rows.push(itemRow);
+      });
+
+      // Total Row
+      const totalRow = [
+        "TOTAL",
+        totalDays,
+        1.0
+      ];
+      let grandActualTotal = 0;
+      DISPLAY_DOMAINS.forEach(d => {
+        totalRow.push("Total:", finalColSums[d], "", "");
+        grandActualTotal += finalColSums[d];
+      });
+      totalRow.push(totalItems, grandActualTotal);
+      rows.push(totalRow);
+
+      rows.push([]); // space
+      
+      // Legend Row
+      rows.push(["Test Type Legend: MC - Multiple Choice | MT - Matching Type | TF - True/False | I - Identification | PS - Problem Solving | E - Essay"]);
+      rows.push(["Weight = no. of days / total no. of days | Total No. of Items = weight x no. of items | Item No. = total no. of items x percentage"]);
+      rows.push([]);
+
+      // Signatories block
+      rows.push(["Prepared by:", "", "", "Checked and Reviewed by:", "", "", "Checked and Validated by:", "", "", "Noted by:"]);
+      rows.push([state.signatories.prepName.toUpperCase(), "", "", state.signatories.revName.toUpperCase(), "", "", state.signatories.valName.toUpperCase(), "", "", state.signatories.notedName.toUpperCase()]);
+      rows.push([state.signatories.prepTitle, "", "", state.signatories.revTitle, "", "", state.signatories.valTitle, "", "", state.signatories.notedTitle]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      // Apply standard mergers
+      const merges = [
+        // Headers merging
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 28 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 28 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 28 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 28 } },
+        { s: { r: 4, c: 0 }, e: { r: 4, c: 28 } },
+
+        // Taxonomy Column mergers (span 4 sub-columns)
+        { s: { r: 9, c: 0 }, e: { r: 10, c: 0 } }, // Competency title
+        { s: { r: 9, c: 1 }, e: { r: 10, c: 1 } }, // Days
+        { s: { r: 9, c: 2 }, e: { r: 10, c: 2 } }, // % weight
+        { s: { r: 9, c: 3 }, e: { r: 9, c: 6 } }, // Remembering
+        { s: { r: 9, c: 7 }, e: { r: 9, c: 10 } }, // Understanding
+        { s: { r: 9, c: 11 }, e: { r: 9, c: 14 } }, // Applying
+        { s: { r: 9, c: 15 }, e: { r: 9, c: 18 } }, // Analyzing
+        { s: { r: 9, c: 19 }, e: { r: 9, c: 22 } }, // Evaluating
+        { s: { r: 9, c: 23 }, e: { r: 9, c: 26 } }, // Creating
+        { s: { r: 9, c: 27 }, e: { r: 10, c: 27 } }, // Expected Items
+        { s: { r: 9, c: 28 }, e: { r: 10, c: 28 } }, // Actual Items
+      ];
+
+      // Merge footer total domains Placement and Type slots
+      const baseTotalRowIdx = 11 + comps.length;
+      DISPLAY_DOMAINS.forEach((_, idx) => {
+        const startCol = 3 + (idx * 4);
+        merges.push({ s: { r: baseTotalRowIdx, c: startCol + 2 }, e: { r: baseTotalRowIdx, c: startCol + 3 } });
+      });
+
+      ws['!merges'] = merges;
+
+      XLSX.utils.book_append_sheet(wb, ws, "DepEd TOS");
+      
+      const fileName = `TOS_${la.replace(/[^a-zA-Z0-9]/g, "_")}_${state.meta.grade.replace(/[^a-zA-Z0-9]/g, "_")}_${state.meta.sy}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function exportToPDF() {
+      const container = document.getElementById('print-preview-container');
+      container.classList.remove('hidden');
+
+      const la = state.meta.learningArea;
+      const fileName = `TOS_${la.replace(/[^a-zA-Z0-9]/g, "_")}_${state.meta.grade.replace(/[^a-zA-Z0-9]/g, "_")}_${state.meta.sy}.pdf`;
+
+      const options = {
+        margin: 0.3,
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'in', format: 'legal', orientation: 'landscape' }
+      };
+
+      html2pdf().from(container).set(options).save().then(() => {
+        container.classList.add('hidden');
+      });
+    }
+  </script>
+</body>
+</html>
