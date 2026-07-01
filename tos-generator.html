@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOS Generator — DepEd Table of Specification Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --ink:#0B2545;
+  --ink-soft:#495468;
+  --ink-faint:#8590A3;
+  --paper:#FAF7F0;
+  --panel:#FFFFFF;
+  --panel-alt:#F3EFE4;
+  --gold:#B8901F;
+  --gold-soft:#EFE2BC;
+  --line:#DDD6C4;
+  --line-strong:#B9AF95;
+  --green:#2F7D5A;
+  --green-bg:#E7F3EC;
+  --amber:#B4581C;
+  --amber-bg:#FBEEE3;
+  --red:#B93A3A;
+  --red-bg:#FBE9E9;
+  --lock-bg:#FFF3D6;
+  --lock-border:#E3B54F;
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow-card:0 1px 2px rgba(11,37,69,0.06), 0 8px 24px rgba(11,37,69,0.07);
+  --font-display:'Source Serif 4', Georgia, serif;
+  --font-ui:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(11,37,69,0.045) 1px, transparent 0);
+  background-size:22px 22px;
+  color:var(--ink);
+  font-family:var(--font-ui);
+  font-size:15px;
+  line-height:1.5;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:var(--font-display); color:var(--ink); margin:0 0 4px 0; font-weight:600;}
+::selection{background:var(--gold-soft);}
+button{font-family:var(--font-ui); cursor:pointer;}
+input,select,textarea{font-family:var(--font-ui); font-size:14px;}
+a{color:inherit;}
+
+/* ---------- App shell ---------- */
+#app{max-width:1180px; margin:0 auto; padding:28px 20px 80px;}
+
+.brand{display:flex; align-items:center; gap:14px; margin-bottom:22px;}
+.brand-mark{
+  width:44px; height:44px; border-radius:10px;
+  background:linear-gradient(155deg,var(--ink) 0%, #163a66 100%);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--gold-soft); font-family:var(--font-display); font-weight:700; font-size:19px;
+  box-shadow:var(--shadow-card);
+  flex-shrink:0;
+}
+.brand-text h1{font-size:21px; letter-spacing:-0.01em;}
+.brand-text p{margin:0; font-size:12.5px; color:var(--ink-soft); letter-spacing:0.02em;}
+
+/* ---------- Stepper ---------- */
+.stepper{
+  display:flex; gap:2px; margin-bottom:24px; background:var(--panel);
+  border:1px solid var(--line); border-radius:var(--radius); padding:6px;
+  box-shadow:var(--shadow-card); overflow-x:auto;
+}
+.step-pill{
+  flex:1; min-width:118px; display:flex; align-items:center; gap:8px;
+  padding:9px 12px; border-radius:var(--radius-sm); border:none; background:transparent;
+  color:var(--ink-soft); font-size:12.5px; font-weight:600; text-align:left;
+  transition:background .15s ease, color .15s ease;
+  white-space:nowrap;
+}
+.step-pill .num{
+  width:20px; height:20px; border-radius:50%; background:var(--panel-alt);
+  color:var(--ink-soft); font-size:11px; font-family:var(--font-mono);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.step-pill.active{background:var(--ink); color:#fff;}
+.step-pill.active .num{background:var(--gold); color:var(--ink);}
+.step-pill.done .num{background:var(--green); color:#fff;}
+.step-pill:hover:not(.active){background:var(--panel-alt); color:var(--ink);}
+
+/* ---------- Cards / layout ---------- */
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow-card); padding:26px 28px; margin-bottom:18px;
+}
+.card-head{margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--line);}
+.card-head .eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); font-weight:600;}
+.card-head p{margin:6px 0 0; color:var(--ink-soft); font-size:13.5px; max-width:640px;}
+
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;}
+.grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px 18px;}
+@media(max-width:720px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+.field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; letter-spacing:0.01em;}
+.field input[type=text],.field input[type=number],.field select,.field textarea{
+  width:100%; padding:9px 11px; border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+  background:#fff; color:var(--ink); transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(184,144,31,0.18);
+}
+.field .hint{font-size:11.5px; color:var(--ink-faint); margin-top:4px;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:7px; padding:10px 18px; border-radius:var(--radius-sm);
+  border:1px solid var(--line-strong); background:#fff; color:var(--ink); font-weight:600; font-size:13.5px;
+  transition:transform .1s ease, box-shadow .15s ease, background .15s;
+}
+.btn:hover{background:var(--panel-alt);}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--ink); border-color:var(--ink); color:#fff;}
+.btn-primary:hover{background:#163a66;}
+.btn-gold{background:var(--gold); border-color:var(--gold); color:#fff;}
+.btn-gold:hover{background:#a37f1b;}
+.btn-ghost{background:transparent; border-color:transparent; color:var(--ink-soft); padding:8px 10px;}
+.btn-ghost:hover{background:var(--panel-alt); color:var(--ink);}
+.btn-danger-ghost{background:transparent; border-color:transparent; color:var(--red); padding:6px 8px; font-size:12px;}
+.btn-danger-ghost:hover{background:var(--red-bg);}
+.btn:disabled{opacity:0.45; cursor:not-allowed; transform:none;}
+.btn-sm{padding:6px 10px; font-size:12px;}
+.btn-row{display:flex; justify-content:space-between; align-items:center; margin-top:22px; gap:10px;}
+.btn-row .right{display:flex; gap:10px;}
+
+/* ---------- Competency rows ---------- */
+.comp-row{
+  display:grid; grid-template-columns:1fr 110px 40px; gap:10px; align-items:start;
+  padding:10px 0; border-bottom:1px dashed var(--line);
+}
+.comp-row:last-child{border-bottom:none;}
+.comp-row textarea{resize:vertical; min-height:38px;}
+.days-total{
+  display:flex; justify-content:space-between; align-items:center; margin-top:14px;
+  padding:10px 14px; background:var(--panel-alt); border-radius:var(--radius-sm); font-size:13px;
+  font-family:var(--font-mono); color:var(--ink-soft);
+}
+.days-total strong{color:var(--ink); font-size:15px;}
+
+/* ---------- Learning area picker ---------- */
+.area-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+@media(max-width:820px){.area-grid{grid-template-columns:repeat(2,1fr);}}
+.area-card{
+  border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:12px 12px 10px; background:#fff;
+  text-align:left; transition:border-color .15s, background .15s;
+}
+.area-card:hover{border-color:var(--gold);}
+.area-card.selected{border-color:var(--gold); background:var(--gold-soft);}
+.area-card .name{font-weight:700; font-size:13px; margin-bottom:6px;}
+.area-card .bars{display:flex; height:8px; border-radius:4px; overflow:hidden; margin-bottom:4px;}
+.area-card .pct{font-family:var(--font-mono); font-size:10px; color:var(--ink-soft);}
+
+/* ---------- Validation banner ---------- */
+.banner{
+  display:flex; flex-wrap:wrap; gap:18px; align-items:center; padding:13px 18px; border-radius:var(--radius-sm);
+  font-size:13px; font-weight:600; margin-bottom:16px; border:1.5px solid transparent;
+}
+.banner.ok{background:var(--green-bg); color:var(--green); border-color:#bfe0cf;}
+.banner.warn{background:var(--amber-bg); color:var(--amber); border-color:#f0cba8;}
+.banner.error{background:var(--red-bg); color:var(--red); border-color:#f0bcbc;}
+.banner .item{display:flex; align-items:center; gap:6px;}
+.banner .dot{width:7px; height:7px; border-radius:50%; background:currentColor;}
+.banner .muted{font-weight:500; opacity:0.85;}
+
+/* ---------- Preview / grid ---------- */
+.doc-frame{
+  background:#fff; border:1px solid var(--line-strong); border-radius:8px; padding:26px 30px;
+  box-shadow:var(--shadow-card); overflow-x:auto;
+}
+.doc-header{text-align:center; font-family:var(--font-display); margin-bottom:14px;}
+.doc-header .l1{font-size:13px; letter-spacing:0.02em;}
+.doc-header .l2{font-size:15px; font-weight:700;}
+.doc-header .l3{font-size:12.5px; color:var(--ink-soft);}
+.doc-meta{display:flex; justify-content:space-between; font-size:12.5px; margin:4px 0; flex-wrap:wrap; gap:6px;}
+.doc-meta b{font-weight:700;}
+
+table.tos{border-collapse:collapse; width:100%; min-width:1500px; font-size:11.5px;}
+table.tos th, table.tos td{border:1px solid var(--line-strong); padding:4px 5px; text-align:center; vertical-align:middle;}
+table.tos thead th{background:var(--panel-alt); font-weight:700; font-size:10.5px; color:var(--ink);}
+table.tos td.comp-cell{text-align:left; min-width:190px; max-width:230px; font-size:11.5px;}
+table.tos td.comp-cell textarea{width:100%; border:none; background:transparent; resize:none; font-family:var(--font-ui); font-size:11.5px; padding:2px;}
+table.tos td.comp-cell textarea:focus{outline:1.5px solid var(--gold); border-radius:3px;}
+table.tos input.days-input{width:44px; border:1px solid transparent; text-align:center; background:transparent; font-family:var(--font-mono); font-size:11px;}
+table.tos input.days-input:focus{outline:none; border-color:var(--gold); background:#fff;}
+table.tos .domain-hdr{background:var(--ink); color:#fff; font-size:10.5px;}
+table.tos .pct-row td, table.tos .pct-row th{background:#F0EAD6; font-family:var(--font-mono); font-weight:600; font-size:10px;}
+table.tos .sub-hdr{font-size:9px; font-weight:600; color:var(--ink-soft); background:#F6F3E9;}
+table.tos td.tentative{color:var(--ink-faint); font-family:var(--font-mono); font-size:10.5px;}
+table.tos td.actual-cell{position:relative; padding:2px;}
+table.tos input.actual-input{
+  width:38px; text-align:center; border:1px solid var(--line); border-radius:3px; padding:3px 2px;
+  font-family:var(--font-mono); font-weight:600; font-size:11.5px; background:#fff;
+}
+table.tos input.actual-input:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 2px rgba(184,144,31,0.18);}
+table.tos td.actual-cell.locked{background:var(--lock-bg);}
+table.tos td.actual-cell.locked input.actual-input{border-color:var(--lock-border); background:#FFFBF0;}
+.reset-pin{
+  position:absolute; top:-6px; right:-4px; width:14px; height:14px; border-radius:50%;
+  background:var(--gold); color:#fff; font-size:9px; line-height:14px; text-align:center; border:none;
+  display:none; padding:0;
+}
+table.tos td.actual-cell.locked .reset-pin{display:block;}
+table.tos td.placement{font-family:var(--font-mono); font-size:10px; color:var(--ink-soft);}
+table.tos td.test-type select{border:1px solid transparent; background:transparent; font-size:10px; font-family:var(--font-ui);}
+table.tos td.test-type select:focus{outline:none; border-color:var(--gold);}
+table.tos tr.total-row td, table.tos tr.total-row th{background:var(--panel-alt); font-weight:700;}
+table.tos tr.total-row td{font-family:var(--font-mono);}
+.col-badge{display:inline-block; margin-left:4px; font-size:8.5px; padding:1px 4px; border-radius:8px; background:var(--red); color:#fff; font-family:var(--font-mono); vertical-align:middle;}
+.row-badge{display:inline-block; margin-left:4px; font-size:8.5px; padding:1px 4px; border-radius:8px; background:var(--amber); color:#fff; font-family:var(--font-mono); vertical-align:middle;}
+.rm-row-btn{background:none; border:none; color:var(--ink-faint); font-size:13px; padding:0 4px;}
+.rm-row-btn:hover{color:var(--red);}
+
+.legend-line{margin-top:16px; font-size:11.5px; color:var(--ink-soft); text-align:center; font-family:var(--font-mono);}
+.formula-notes{margin-top:8px; font-size:10.5px; color:var(--ink-faint); text-align:center; font-style:italic; line-height:1.6;}
+
+.sig-block{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:30px;}
+.sig-col{text-align:center;}
+.sig-col input{width:100%; text-align:center; border:none; border-bottom:1.3px solid var(--ink); background:transparent; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:4px 2px; text-transform:uppercase;}
+.sig-col input:focus{outline:none; border-color:var(--gold);}
+.sig-col .role-title{font-size:10.5px; color:var(--ink-soft); margin-top:5px;}
+.sig-col .position-input{border-bottom:none; font-family:var(--font-ui); font-weight:400; text-transform:none; font-size:11px; margin-top:2px;}
+
+/* ---------- Signatory form (step 5) ---------- */
+.sig-form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:720px){.sig-form-grid{grid-template-columns:1fr;}}
+.sig-form-card{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px; background:var(--panel-alt);}
+.sig-form-card h4{font-size:13px; margin-bottom:10px;}
+
+/* ---------- Toast / conflict warnings ---------- */
+.warn-strip{background:var(--amber-bg); border:1px solid #f0cba8; color:var(--amber); border-radius:var(--radius-sm); padding:10px 14px; font-size:12.5px; margin-bottom:14px;}
+
+.footer-note{text-align:center; font-size:11.5px; color:var(--ink-faint); margin-top:26px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* =========================================================================
+   TOS GENERATOR — COMPUTATION ENGINE  (spec §3, Steps 1–5)
+   Pure functions. Re-run in full on every state change (reactive pipeline).
+   ========================================================================= */
+
+var DOMAIN_ORDER = ["Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", "Creating"];
+
+var TEST_TYPES = { MC: "Multiple Choice", MT: "Matching Type", TF: "True/False", I: "Identification", PS: "Problem Solving", E: "Essay" };
+
+// Static reference data (spec §2) — versioned config, not hardcoded into UI.
+var LEARNING_AREA_CONFIG = {
+  "English & Filipino": { Remembering: 15, Understanding: 25, Analyzing: 15, Applying: 25, Evaluating: 10, Creating: 10 },
+  "Math": { Remembering: 30, Understanding: 30, Analyzing: 15, Applying: 15, Evaluating: 5, Creating: 5 },
+  "Science": { Remembering: 25, Understanding: 25, Analyzing: 20, Applying: 20, Evaluating: 5, Creating: 5 },
+  "Araling Panlipunan": { Remembering: 30, Understanding: 30, Analyzing: 15, Applying: 15, Evaluating: 5, Creating: 5 },
+  "TLE/EPP": { Remembering: 10, Understanding: 10, Analyzing: 10, Applying: 25, Evaluating: 20, Creating: 25 },
+  "MAPEH/MSEP": { Remembering: 10, Understanding: 10, Analyzing: 10, Applying: 25, Evaluating: 20, Creating: 25 },
+  "EsP": { Remembering: 10, Understanding: 10, Analyzing: 20, Applying: 20, Evaluating: 30, Creating: 10 },
+};
+
+function largestRemainderRound(weights, total) {
+  var sumW = weights.reduce(function (a, b) { return a + b; }, 0);
+  var raw = weights.map(function (w) { return sumW > 0 ? (w / sumW) * total : 0; });
+  var floors = raw.map(Math.floor);
+  var leftover = total - floors.reduce(function (a, b) { return a + b; }, 0);
+  var remainders = raw.map(function (r, i) { return { i: i, rem: r - floors[i], raw: r }; });
+  remainders.sort(function (a, b) { return (b.rem - a.rem) || (b.raw - a.raw); });
+  var result = floors.slice();
+  for (var k = 0; k < leftover && k < remainders.length; k++) result[remainders[k].i] += 1;
+  return result;
+}
+
+function allocateRowTargets(competencies, totalItems) {
+  var weights = competencies.map(function (c) { return Math.max(0, Number(c.days) || 0); });
+  var rounded = largestRemainderRound(weights, totalItems);
+  var sumW = weights.reduce(function (a, b) { return a + b; }, 0);
+  var raw = weights.map(function (w) { return sumW > 0 ? (w / sumW) * totalItems : 0; });
+  var out = {};
+  competencies.forEach(function (c, i) { out[c.id] = { target: rounded[i], expected: raw[i], weightPct: sumW > 0 ? (weights[i] / sumW) * 100 : 0 }; });
+  return out;
+}
+
+function allocateColumnTargets(domainPercentages, totalItems) {
+  var weights = DOMAIN_ORDER.map(function (d) { return domainPercentages[d] || 0; });
+  var rounded = largestRemainderRound(weights, totalItems);
+  var out = {};
+  DOMAIN_ORDER.forEach(function (d, i) { out[d] = rounded[i]; });
+  return out;
+}
+
+function buildTentativeMatrix(competencies, rowTargets, domainPercentages) {
+  var matrix = {};
+  competencies.forEach(function (c) {
+    matrix[c.id] = {};
+    DOMAIN_ORDER.forEach(function (d) { matrix[c.id][d] = rowTargets[c.id].target * ((domainPercentages[d] || 0) / 100); });
+  });
+  return matrix;
+}
+
+function roundMatrix(competencies, tentative, rowTargets, colTargets, domainPercentages, cellsState) {
+  var rowIds = competencies.map(function (c) { return c.id; });
+  var matrix = {};
+  rowIds.forEach(function (r) { matrix[r] = {}; });
+
+  function isLocked(r, d) { return !!(cellsState[r] && cellsState[r][d] && cellsState[r][d].locked); }
+  function lockedVal(r, d) { return cellsState[r][d].value | 0; }
+
+  rowIds.forEach(function (r) {
+    DOMAIN_ORDER.forEach(function (d) {
+      if (isLocked(r, d)) { matrix[r][d] = Math.max(0, lockedVal(r, d)); }
+      else { var t = tentative[r][d]; matrix[r][d] = t === 0 ? 0 : Math.floor(t); }
+    });
+  });
+
+  var rowRemaining = {};
+  rowIds.forEach(function (r) {
+    var sum = DOMAIN_ORDER.reduce(function (a, d) { return a + matrix[r][d]; }, 0);
+    rowRemaining[r] = rowTargets[r].target - sum;
+  });
+  var colRemaining = {};
+  DOMAIN_ORDER.forEach(function (d) {
+    var sum = rowIds.reduce(function (a, r) { return a + matrix[r][d]; }, 0);
+    colRemaining[d] = colTargets[d] - sum;
+  });
+
+  function candidates() {
+    var list = [];
+    rowIds.forEach(function (r) {
+      if (rowRemaining[r] <= 0) return;
+      DOMAIN_ORDER.forEach(function (d, di) {
+        if (isLocked(r, d)) return;
+        if (colRemaining[d] <= 0) return;
+        var t = tentative[r][d];
+        if (t === 0) return;
+        list.push({ r: r, d: d, di: di, frac: t - Math.floor(t), raw: t });
+      });
+    });
+    return list;
+  }
+
+  var guard = 0;
+  while (guard++ < 100000) {
+    var cands = candidates();
+    if (cands.length === 0) break;
+    cands.sort(function (a, b) { return (b.frac - a.frac) || (b.raw - a.raw) || (a.di - b.di); });
+    var top = cands[0];
+    matrix[top.r][top.d] += 1;
+    rowRemaining[top.r] -= 1;
+    colRemaining[top.d] -= 1;
+  }
+
+  // Fallback pass — see spec §3 Step 4, point 6.
+  rowIds.forEach(function (r) {
+    var guard2 = 0;
+    while (rowRemaining[r] > 0 && guard2++ < 1000) {
+      var opts = DOMAIN_ORDER.filter(function (d) { return !isLocked(r, d) && colRemaining[d] > 0; })
+        .sort(function (a, b) { return (domainPercentages[b] || 0) - (domainPercentages[a] || 0); });
+      if (opts.length === 0) break;
+      var d = opts[0];
+      matrix[r][d] += 1; rowRemaining[r] -= 1; colRemaining[d] -= 1;
+    }
+  });
+  DOMAIN_ORDER.forEach(function (d) {
+    var guard3 = 0;
+    while (colRemaining[d] > 0 && guard3++ < 1000) {
+      var opts = rowIds.filter(function (r) { return !isLocked(r, d); })
+        .sort(function (a, b) { return rowTargets[b].expected - rowTargets[a].expected; });
+      if (opts.length === 0) break;
+      var r = opts[0];
+      matrix[r][d] += 1; colRemaining[d] -= 1; rowRemaining[r] -= 1;
+    }
+  });
+
+  return { matrix: matrix, rowRemaining: rowRemaining, colRemaining: colRemaining };
+}
+
+function assignItemNumbers(competencies, matrix) {
+  var counter = 1;
+  var placements = {};
+  competencies.forEach(function (c) {
+    placements[c.id] = {};
+    DOMAIN_ORDER.forEach(function (d) {
+      var n = matrix[c.id][d];
+      if (!n || n <= 0) { placements[c.id][d] = { numbers: [], label: "" }; return; }
+      var nums = [];
+      for (var k = 0; k < n; k++) nums.push(counter++);
+      placements[c.id][d] = { numbers: nums, label: nums.join(", ") };
+    });
+  });
+  return { placements: placements, finalCount: counter - 1 };
+}
+
+function computeAll(competencies, totalItems, domainPercentages, cellsState) {
+  var rowTargets = allocateRowTargets(competencies, totalItems);
+  var colTargets = allocateColumnTargets(domainPercentages, totalItems);
+  var tentative = buildTentativeMatrix(competencies, rowTargets, domainPercentages);
+  var rm = roundMatrix(competencies, tentative, rowTargets, colTargets, domainPercentages, cellsState || {});
+  var an = assignItemNumbers(competencies, rm.matrix);
+  var grandTotal = competencies.reduce(function (a, c) {
+    return a + DOMAIN_ORDER.reduce(function (b, d) { return b + rm.matrix[c.id][d]; }, 0);
+  }, 0);
+  return {
+    rowTargets: rowTargets, colTargets: colTargets, tentative: tentative,
+    matrix: rm.matrix, rowRemaining: rm.rowRemaining, colRemaining: rm.colRemaining,
+    placements: an.placements, finalCount: an.finalCount, grandTotal: grandTotal,
+  };
+}
+/* =========================================================================
+   APPLICATION STATE
+   ========================================================================= */
+
+var STORAGE_KEY = "tos-generator-state-v1";
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
+
+function defaultState() {
+  return {
+    step: 1,
+    header: { gradeSection: "", schoolYear: "", region: "Region V (Bicol)", sdo: "", school: "", quarter: "1st" },
+    learningArea: "",
+    totalItems: 40,
+    competencies: [
+      { id: uid(), text: "", days: 4 },
+    ],
+    signatories: {
+      prepared: { name: "", title: "Subject Teacher" },
+      reviewed: { name: "", title: "Subject Group Head" },
+      validated: { name: "", title: "Assistant School Principal" },
+      noted: { name: "", title: "School Head" },
+    },
+    cells: {}, // cells[compId][domain] = { locked:false, value:0, testType:'MC' }
+  };
+}
+
+var state = loadState() || defaultState();
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || !parsed.competencies) return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+
+var saveTimer = null;
+function saveState() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function () {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ }
+  }, 200);
+}
+
+/* ---------- Cell helpers ---------- */
+function getCell(compId, domain) {
+  var row = state.cells[compId];
+  if (!row || !row[domain]) return { locked: false, value: 0, testType: "MC" };
+  return row[domain];
+}
+function ensureCell(compId, domain) {
+  if (!state.cells[compId]) state.cells[compId] = {};
+  if (!state.cells[compId][domain]) state.cells[compId][domain] = { locked: false, value: 0, testType: "MC" };
+  return state.cells[compId][domain];
+}
+function lockCell(compId, domain, value) {
+  var c = ensureCell(compId, domain);
+  c.locked = true; c.value = value;
+}
+function unlockCell(compId, domain) {
+  var c = ensureCell(compId, domain);
+  c.locked = false;
+}
+function setTestType(compId, domain, tt) {
+  var c = ensureCell(compId, domain);
+  c.testType = tt;
+}
+function lockedCellsExist() {
+  return Object.keys(state.cells).some(function (rid) {
+    var row = state.cells[rid];
+    return row && Object.keys(row).some(function (d) { return row[d] && row[d].locked; });
+  });
+}
+function clearAllLocks() {
+  Object.keys(state.cells).forEach(function (rid) {
+    var row = state.cells[rid];
+    if (!row) return;
+    Object.keys(row).forEach(function (d) { if (row[d]) row[d].locked = false; });
+  });
+}
+
+/* ---------- Derived / validation ---------- */
+function totalDays() {
+  return state.competencies.reduce(function (a, c) { return a + (Number(c.days) || 0); }, 0);
+}
+function canCompute() {
+  return !!state.learningArea && state.totalItems > 0 && state.competencies.length > 0 && totalDays() > 0;
+}
+function recompute() {
+  if (!canCompute()) return null;
+  var domainPct = LEARNING_AREA_CONFIG[state.learningArea];
+  return computeAll(state.competencies, state.totalItems, domainPct, state.cells);
+}
+
+function sanitizeFilename(s) {
+  return (s || "").trim().replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\-]/g, "");
+}
+
+function debounce(fn, ms) {
+  var t = null;
+  return function () {
+    var args = arguments, ctx = this;
+    clearTimeout(t);
+    t = setTimeout(function () { fn.apply(ctx, args); }, ms);
+  };
+}
+
+/* ---------- Focus preservation across targeted re-renders ---------- */
+function withFocusPreserved(container, renderFn) {
+  var active = document.activeElement;
+  var key = active && active.getAttribute ? active.getAttribute("data-focus-key") : null;
+  var selStart = (active && typeof active.selectionStart === "number") ? active.selectionStart : null;
+  renderFn();
+  if (key) {
+    var el = container.querySelector('[data-focus-key="' + key.replace(/"/g, '\\"') + '"]');
+    if (el) {
+      el.focus();
+      if (selStart !== null && el.setSelectionRange) {
+        try { el.setSelectionRange(selStart, selStart); } catch (e) { /* noop */ }
+      }
+    }
+  }
+}
+/* =========================================================================
+   RENDER: APP SHELL + STEPPER
+   ========================================================================= */
+
+var STEPS = [
+  { n: 1, label: "School Info" },
+  { n: 2, label: "Learning Area" },
+  { n: 3, label: "Competencies" },
+  { n: 4, label: "No. of Items" },
+  { n: 5, label: "Signatories" },
+  { n: 6, label: "Preview & Export" },
+];
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function goStep(n) { state.step = n; saveState(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+function render() {
+  var app = document.getElementById("app");
+  app.innerHTML =
+    '<div class="brand">' +
+      '<div class="brand-mark">TOS</div>' +
+      '<div class="brand-text"><h1>Table of Specification Generator</h1><p>DepEd-compliant TOS builder &middot; Bloom&rsquo;s Taxonomy item distribution &middot; live recalculation</p></div>' +
+    '</div>' +
+    renderStepperHtml() +
+    '<main id="stepContent"></main>' +
+    '<div class="footer-note">Your entries are saved automatically in this browser. Nothing is uploaded anywhere.</div>';
+
+  document.querySelectorAll(".step-pill").forEach(function (btn) {
+    btn.addEventListener("click", function () { goStep(Number(btn.getAttribute("data-step"))); });
+  });
+
+  var content = document.getElementById("stepContent");
+  if (state.step === 1) renderStep1(content);
+  else if (state.step === 2) renderStep2(content);
+  else if (state.step === 3) renderStep3(content);
+  else if (state.step === 4) renderStep4(content);
+  else if (state.step === 5) renderStep5(content);
+  else renderStep6(content);
+}
+
+function renderStepperHtml() {
+  return '<nav class="stepper">' + STEPS.map(function (s) {
+    var cls = "step-pill" + (s.n === state.step ? " active" : "") + (s.n < state.step ? " done" : "");
+    return '<button type="button" class="' + cls + '" data-step="' + s.n + '">' +
+      '<span class="num">' + s.n + '</span><span>' + esc(s.label) + '</span></button>';
+  }).join("") + '</nav>';
+}
+
+function stepNav(container, backFn, nextFn, nextLabel, nextDisabled) {
+  var row = document.createElement("div");
+  row.className = "btn-row";
+  var left = document.createElement("div");
+  if (backFn) {
+    var backBtn = document.createElement("button");
+    backBtn.className = "btn"; backBtn.type = "button"; backBtn.textContent = "\u2190 Back";
+    backBtn.addEventListener("click", backFn);
+    left.appendChild(backBtn);
+  }
+  var right = document.createElement("div");
+  right.className = "right";
+  if (nextFn) {
+    var nextBtn = document.createElement("button");
+    nextBtn.className = "btn btn-primary"; nextBtn.type = "button";
+    nextBtn.textContent = nextLabel || "Continue \u2192";
+    nextBtn.disabled = !!nextDisabled;
+    nextBtn.addEventListener("click", nextFn);
+    right.appendChild(nextBtn);
+  }
+  row.appendChild(left); row.appendChild(right);
+  container.appendChild(row);
+}
+
+/* =========================================================================
+   STEP 1 — Header & School Info
+   ========================================================================= */
+function renderStep1(container) {
+  var h = state.header;
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 1</div><h2>School &amp; Header Information</h2>' +
+      '<p>This fills the official DepEd header block at the top of the exported Table of Specification.</p></div>' +
+      '<div class="grid-2">' +
+        field("Grade &amp; Section / Subject", "gradeSection", h.gradeSection, "e.g. Grade 8 - Creative Technology") +
+        field("School Year", "schoolYear", h.schoolYear, "e.g. 2025-2026") +
+        field("Region", "region", h.region, "e.g. Region V (Bicol)") +
+        field("Schools Division Office", "sdo", h.sdo, "e.g. Schools Division Office of Legazpi City") +
+        field("School Name", "school", h.school, "e.g. Banquerohan National High School") +
+        selectField("Quarter", "quarter", h.quarter, ["1st", "2nd", "3rd", "4th"]) +
+      '</div>' +
+    '</div>';
+
+  function field(label, key, val, ph) {
+    return '<div class="field"><label>' + label + '</label>' +
+      '<input type="text" data-key="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"></div>';
+  }
+  function selectField(label, key, val, opts) {
+    return '<div class="field"><label>' + label + '</label><select data-key="' + key + '">' +
+      opts.map(function (o) { return '<option value="' + o + '"' + (o === val ? " selected" : "") + '>' + o + ' Quarter</option>'; }).join("") +
+      '</select></div>';
+  }
+
+  container.querySelectorAll("input[data-key],select[data-key]").forEach(function (el) {
+    el.addEventListener("input", function () { state.header[el.getAttribute("data-key")] = el.value; saveState(); });
+  });
+
+  stepNav(container, null, function () { goStep(2); });
+}
+
+/* =========================================================================
+   STEP 2 — Learning Area
+   ========================================================================= */
+function renderStep2(container) {
+  var areas = Object.keys(LEARNING_AREA_CONFIG);
+  var colors = { Remembering: "#0B2545", Understanding: "#3E6690", Applying: "#B8901F", Analyzing: "#C97A2B", Evaluating: "#8A6B9E", Creating: "#2F7D5A" };
+
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 2</div><h2>Learning Area</h2>' +
+      '<p>Your selection determines the Bloom&rsquo;s Taxonomy percentage split applied to every item in the exam (spec &sect;2 reference table).</p></div>' +
+      '<div class="area-grid">' +
+        areas.map(function (a) {
+          var pct = LEARNING_AREA_CONFIG[a];
+          var sel = a === state.learningArea;
+          return '<button type="button" class="area-card' + (sel ? " selected" : "") + '" data-area="' + esc(a) + '">' +
+            '<div class="name">' + esc(a) + '</div>' +
+            '<div class="bars">' + DOMAIN_ORDER.map(function (d) {
+              return '<div style="width:' + pct[d] + '%; background:' + colors[d] + ';" title="' + d + ' ' + pct[d] + '%"></div>';
+            }).join("") + '</div>' +
+            '<div class="pct">' + DOMAIN_ORDER.map(function (d) { return d.slice(0, 3) + " " + pct[d] + "%"; }).join(" &middot; ") + '</div>' +
+          '</button>';
+        }).join("") +
+      '</div>' +
+    '</div>';
+
+  container.querySelectorAll(".area-card").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.learningArea = btn.getAttribute("data-area");
+      saveState(); renderStep2(container);
+    });
+  });
+
+  stepNav(container, function () { goStep(1); }, function () { goStep(3); }, "Continue \u2192", !state.learningArea);
+}
+/* =========================================================================
+   STEP 3 — Competencies & Days
+   ========================================================================= */
+function renderStep3(container) {
+  var rowsHtml = state.competencies.map(function (c, idx) {
+    var zeroWarn = (Number(c.days) || 0) <= 0
+      ? '<div class="hint" style="color:var(--red);">Needs at least 1 day &mdash; 0-day competencies are excluded from weighting.</div>' : "";
+    return '<div class="comp-row" data-row="' + c.id + '">' +
+      '<div class="field" style="margin:0;">' +
+        '<label>Competency ' + (idx + 1) + '</label>' +
+        '<textarea data-focus-key="comp-text-' + c.id + '" data-comp="' + c.id + '" data-field="text" rows="2" placeholder="e.g. Write codes using variables">' + esc(c.text) + '</textarea>' +
+        zeroWarn +
+      '</div>' +
+      '<div class="field" style="margin:0;">' +
+        '<label>No. of Days</label>' +
+        '<input type="number" min="0" step="1" data-focus-key="comp-days-' + c.id + '" data-comp="' + c.id + '" data-field="days" value="' + esc(c.days) + '">' +
+      '</div>' +
+      '<div style="display:flex; align-items:flex-end; justify-content:center; height:100%; padding-top:20px;">' +
+        '<button type="button" class="rm-row-btn" data-remove="' + c.id + '" title="Remove competency">&#10005;</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 3</div><h2>Learning Competencies</h2>' +
+      '<p>Add every competency covered by this exam with the number of teaching days spent on it. Days determine each competency&rsquo;s proportional share of exam items.</p></div>' +
+      '<div id="compList">' + rowsHtml + '</div>' +
+      '<button type="button" class="btn" id="addCompBtn" style="margin-top:12px;">+ Add competency</button>' +
+      '<div class="days-total">Total competency-days: <strong id="daysTotalNum">' + totalDays() + '</strong></div>' +
+    '</div>';
+
+  container.querySelectorAll("textarea[data-comp]").forEach(function (el) {
+    el.addEventListener("input", function () {
+      var id = el.getAttribute("data-comp");
+      var comp = state.competencies.find(function (c) { return c.id === id; });
+      if (comp) comp.text = el.value;
+      saveState();
+    });
+  });
+  container.querySelectorAll("input[data-comp]").forEach(function (el) {
+    el.addEventListener("input", function () {
+      var id = el.getAttribute("data-comp");
+      var comp = state.competencies.find(function (c) { return c.id === id; });
+      if (comp) comp.days = Math.max(0, parseInt(el.value, 10) || 0);
+      saveState();
+      var totalEl = document.getElementById("daysTotalNum");
+      if (totalEl) totalEl.textContent = totalDays();
+    });
+    el.addEventListener("blur", function () {
+      // Structural-ish (affects Step 1 row targets) but locks are preserved per spec §7.1 — just re-render for the 0-day hint.
+      withFocusPreserved(container, function () { renderStep3(container); });
+    });
+  });
+  container.querySelectorAll("[data-remove]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (state.competencies.length <= 1) { alert("At least one competency is required."); return; }
+      var doRemove = function () {
+        var id = btn.getAttribute("data-remove");
+        state.competencies = state.competencies.filter(function (c) { return c.id !== id; });
+        delete state.cells[id];
+        saveState(); renderStep3(container);
+      };
+      if (lockedCellsExist()) {
+        if (confirm("Removing a competency changes the row structure and will clear all manual item-count overrides on the Preview grid. Continue?")) {
+          clearAllLocks(); doRemove();
+        }
+      } else { doRemove(); }
+    });
+  });
+  document.getElementById("addCompBtn").addEventListener("click", function () {
+    var doAdd = function () {
+      state.competencies.push({ id: uid(), text: "", days: 1 });
+      saveState(); renderStep3(container);
+    };
+    if (lockedCellsExist()) {
+      if (confirm("Adding a competency changes the row structure and will clear all manual item-count overrides on the Preview grid. Continue?")) {
+        clearAllLocks(); doAdd();
+      }
+    } else { doAdd(); }
+  });
+
+  stepNav(container, function () { goStep(2); }, function () { goStep(4); }, "Continue \u2192", totalDays() <= 0);
+}
+
+/* =========================================================================
+   STEP 4 — No. of Items
+   ========================================================================= */
+function renderStep4(container) {
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 4</div><h2>Total Number of Items</h2>' +
+      '<p>The total item count for the exam. Every competency and Bloom&rsquo;s domain target is derived from this number.</p></div>' +
+      '<div class="field" style="max-width:220px;">' +
+        '<label>No. of Items</label>' +
+        '<input type="number" min="1" step="1" id="totalItemsInput" value="' + esc(state.totalItems) + '">' +
+        '<div class="hint">Total competency-days on file: ' + totalDays() + '</div>' +
+      '</div>' +
+    '</div>';
+
+  var input = document.getElementById("totalItemsInput");
+  input.addEventListener("change", function () {
+    var val = Math.max(1, parseInt(input.value, 10) || 0);
+    if (val === state.totalItems) return;
+    var commit = function () { state.totalItems = val; saveState(); };
+    if (lockedCellsExist()) {
+      if (confirm("Changing the total number of items will recalculate the whole table and clear all manual overrides. Continue?")) {
+        clearAllLocks(); commit();
+      } else { input.value = state.totalItems; }
+    } else { commit(); }
+  });
+
+  stepNav(container, function () { goStep(3); }, function () { goStep(5); }, "Continue \u2192", !(state.totalItems > 0));
+}
+
+/* =========================================================================
+   STEP 5 — Signatories
+   ========================================================================= */
+function renderStep5(container) {
+  var roles = [
+    { key: "prepared", label: "Prepared by" },
+    { key: "reviewed", label: "Checked and Reviewed by" },
+    { key: "validated", label: "Checked and Validated by" },
+    { key: "noted", label: "Noted by" },
+  ];
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 5</div><h2>Signatories</h2>' +
+      '<p>These appear in the signature block at the bottom of the exported document.</p></div>' +
+      '<div class="sig-form-grid">' +
+        roles.map(function (r) {
+          var s = state.signatories[r.key];
+          return '<div class="sig-form-card"><h4>' + r.label + '</h4>' +
+            '<div class="field"><label>Name</label><input type="text" data-role="' + r.key + '" data-field="name" value="' + esc(s.name) + '" placeholder="Full name"></div>' +
+            '<div class="field" style="margin-top:8px;"><label>Position / Title</label><input type="text" data-role="' + r.key + '" data-field="title" value="' + esc(s.title) + '" placeholder="e.g. Subject Teacher"></div>' +
+          '</div>';
+        }).join("") +
+      '</div>' +
+    '</div>';
+
+  container.querySelectorAll("input[data-role]").forEach(function (el) {
+    el.addEventListener("input", function () {
+      state.signatories[el.getAttribute("data-role")][el.getAttribute("data-field")] = el.value;
+      saveState();
+    });
+  });
+
+  stepNav(container, function () { goStep(4); }, function () { goStep(6); }, "Preview \u2192");
+}
+/* =========================================================================
+   STEP 6 — Preview & Export (the reactive grid)
+   ========================================================================= */
+
+var DOMAIN_COLORS = { Remembering: "#0B2545", Understanding: "#1F4E79", Applying: "#8A6413", Analyzing: "#B8641E", Evaluating: "#6B4E85", Creating: "#2F7D5A" };
+
+function renderStep6(container) {
+  if (!canCompute()) {
+    var missing = [];
+    if (!state.learningArea) missing.push('<a href="#" data-jump="2">choose a Learning Area</a>');
+    if (!(state.totalItems > 0)) missing.push('<a href="#" data-jump="4">set the No. of Items</a>');
+    if (!(state.competencies.length > 0 && totalDays() > 0)) missing.push('<a href="#" data-jump="3">add competencies with days &gt; 0</a>');
+    container.innerHTML = '<div class="card"><div class="card-head"><div class="eyebrow">Step 6</div><h2>Preview &amp; Export</h2></div>' +
+      '<p>Before the Table of Specification can be generated, please ' + missing.join(" and ") + '.</p></div>';
+    container.querySelectorAll("[data-jump]").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); goStep(Number(a.getAttribute("data-jump"))); });
+    });
+    stepNav(container, function () { goStep(5); }, null);
+    return;
+  }
+
+  var result = recompute();
+  var rows = state.competencies;
+  var rowsOnTarget = rows.filter(function (c) { return result.rowRemaining[c.id] === 0; }).length;
+  var colsOnTarget = DOMAIN_ORDER.filter(function (d) { return result.colRemaining[d] === 0; }).length;
+  var grandOk = result.grandTotal === state.totalItems;
+
+  var bannerClass = !grandOk ? "error" : (rowsOnTarget < rows.length || colsOnTarget < 6) ? "warn" : "ok";
+  var offCols = DOMAIN_ORDER.filter(function (d) { return result.colRemaining[d] !== 0; })
+    .map(function (d) { var r = result.colRemaining[d]; return d + " (" + (r > 0 ? "needs +" + r : r) + ")"; });
+
+  var bannerHtml =
+    '<div class="banner ' + bannerClass + '">' +
+      '<span class="item"><span class="dot"></span>Total items: ' + result.grandTotal + ' / ' + state.totalItems + (grandOk ? " \u2713" : " \u2717") + '</span>' +
+      '<span class="item muted">Rows on target: ' + rowsOnTarget + ' / ' + rows.length + '</span>' +
+      '<span class="item muted">Columns on target: ' + colsOnTarget + ' / 6' + (offCols.length ? ' (' + offCols.join(", ") + ')' : '') + '</span>' +
+      (lockedCellsExist() ? '<span class="item muted">Manual overrides active</span>' : '') +
+    '</div>';
+
+  var docHeader =
+    '<div class="doc-header">' +
+      '<div class="l1">Republic of the Philippines</div>' +
+      '<div class="l2">Department of Education</div>' +
+      '<div class="l3">' + esc(state.header.region) + (state.header.sdo ? ' &middot; ' + esc(state.header.sdo) : '') + '</div>' +
+    '</div>' +
+    '<div class="doc-meta"><span><b>School:</b> ' + esc(state.header.school || "\u2014") + '</span><span>' + esc(state.header.quarter) + ' QUARTER</span></div>' +
+    '<div class="doc-meta"><span><b>Grade &amp; Subject:</b> ' + esc(state.header.gradeSection || "\u2014") + '</span><span>' + state.totalItems + ' No. of Items</span></div>' +
+    '<div class="doc-meta"><span><b>SY:</b> ' + esc(state.header.schoolYear || "\u2014") + '</span><span><b>Learning Area:</b> ' + esc(state.learningArea) + '</span></div>';
+
+  var domainPct = LEARNING_AREA_CONFIG[state.learningArea];
+
+  var theadHtml =
+    '<thead>' +
+      '<tr>' +
+        '<th rowspan="4">Competency</th><th rowspan="4">No. of<br>Days</th><th rowspan="4">%<br>Weight</th>' +
+        '<th colspan="24" class="domain-hdr" style="background:var(--ink);">TAXONOMY (Bloom&rsquo;s Domains)</th>' +
+        '<th rowspan="4">Expected<br>No. of Items</th><th rowspan="4">Actual<br>No. of Items</th><th rowspan="4"></th>' +
+      '</tr>' +
+      '<tr>' + DOMAIN_ORDER.map(function (d) {
+        var badge = result.colRemaining[d] !== 0 ? '<span class="col-badge">' + (result.colRemaining[d] > 0 ? "+" + result.colRemaining[d] : result.colRemaining[d]) + '</span>' : "";
+        return '<th colspan="4" class="domain-hdr" style="background:' + DOMAIN_COLORS[d] + ';">' + d + badge + '</th>';
+      }).join("") + '</tr>' +
+      '<tr class="pct-row">' + DOMAIN_ORDER.map(function (d) { return '<th colspan="4">' + domainPct[d] + '%</th>'; }).join("") + '</tr>' +
+      '<tr class="sub-hdr">' + DOMAIN_ORDER.map(function () {
+        return '<th>Tentative<br>Item No.</th><th>Actual #<br>of Items</th><th>Test<br>Placement</th><th>Test<br>Type</th>';
+      }).join("") + '</tr>' +
+    '</thead>';
+
+  var bodyRows = rows.map(function (c) {
+    var rt = result.rowTargets[c.id];
+    var rowSum = DOMAIN_ORDER.reduce(function (a, d) { return a + result.matrix[c.id][d]; }, 0);
+    var zeroDomains = DOMAIN_ORDER.filter(function (d) { return result.matrix[c.id][d] === 0; }).length;
+    var rowBadge = result.rowRemaining[c.id] !== 0
+      ? '<span class="row-badge">' + (result.rowRemaining[c.id] > 0 ? "+" + result.rowRemaining[c.id] : result.rowRemaining[c.id]) + '</span>'
+      : (zeroDomains > 2 ? '<span class="row-badge" title="0 items in more than 2 domains">!</span>' : "");
+
+    var domainCells = DOMAIN_ORDER.map(function (d) {
+      var cell = getCell(c.id, d);
+      var val = result.matrix[c.id][d];
+      var tent = result.tentative[c.id][d];
+      var placement = result.placements[c.id][d].label;
+      var tentText = tent === 0 ? "" : tent.toFixed(1);
+      var lockedCls = cell.locked ? " locked" : "";
+      var opts = Object.keys(TEST_TYPES).map(function (code) {
+        return '<option value="' + code + '"' + (cell.testType === code ? " selected" : "") + '>' + code + '</option>';
+      }).join("");
+      return (
+        '<td class="tentative">' + tentText + '</td>' +
+        '<td class="actual-cell' + lockedCls + '" data-cell="' + c.id + '|' + d + '">' +
+          '<input class="actual-input" type="number" min="0" step="1" data-comp="' + c.id + '" data-domain="' + d + '" value="' + val + '">' +
+          '<button class="reset-pin" data-reset="' + c.id + '|' + d + '" title="Reset to auto">&#8635;</button>' +
+        '</td>' +
+        '<td class="placement">' + esc(placement) + '</td>' +
+        '<td class="test-type">' + (val > 0 ? '<select data-comp="' + c.id + '" data-domain="' + d + '">' + opts + '</select>' : '') + '</td>'
+      );
+    }).join("");
+
+    return '<tr data-comp-row="' + c.id + '">' +
+      '<td class="comp-cell"><textarea rows="2" data-focus-key="grid-text-' + c.id + '" data-comp="' + c.id + '" data-field="text">' + esc(c.text) + '</textarea></td>' +
+      '<td><input class="days-input" type="number" min="0" step="1" data-focus-key="grid-days-' + c.id + '" data-comp="' + c.id + '" data-field="days" value="' + esc(c.days) + '"></td>' +
+      '<td>' + rt.weightPct.toFixed(1) + '%</td>' +
+      domainCells +
+      '<td>' + rt.expected.toFixed(1) + '</td>' +
+      '<td><strong>' + rowSum + '</strong>' + rowBadge + '</td>' +
+      '<td><button type="button" class="rm-row-btn" data-remove-grid="' + c.id + '" title="Remove">&#10005;</button></td>' +
+    '</tr>';
+  }).join("");
+
+  var totalTentativeByDomain = {};
+  DOMAIN_ORDER.forEach(function (d) {
+    totalTentativeByDomain[d] = rows.reduce(function (a, c) { return a + result.tentative[c.id][d]; }, 0);
+  });
+  var totalActualByDomain = {};
+  DOMAIN_ORDER.forEach(function (d) {
+    totalActualByDomain[d] = rows.reduce(function (a, c) { return a + result.matrix[c.id][d]; }, 0);
+  });
+
+  var totalRow = '<tr class="total-row">' +
+    '<td>TOTAL</td><td>' + totalDays() + '</td><td>100%</td>' +
+    DOMAIN_ORDER.map(function (d) {
+      var badge = result.colRemaining[d] !== 0 ? '<span class="col-badge">' + (result.colRemaining[d] > 0 ? "+" + result.colRemaining[d] : result.colRemaining[d]) + '</span>' : "";
+      return '<td>' + totalTentativeByDomain[d].toFixed(1) + '</td><td>' + totalActualByDomain[d] + badge + '</td><td></td><td></td>';
+    }).join("") +
+    '<td>' + state.totalItems + '</td><td>' + result.grandTotal + '</td><td></td>' +
+  '</tr>';
+
+  var legend = '<div class="legend-line">Test Type Legend: ' +
+    Object.keys(TEST_TYPES).map(function (k) { return k + ' - ' + TEST_TYPES[k]; }).join(" &nbsp;&nbsp; ") + '</div>';
+  var formulaNotes = '<div class="formula-notes">' +
+    'Weight = no. of days &divide; total no. of days &nbsp;&middot;&nbsp; ' +
+    'Total No. of Items = weight &times; no. of items &nbsp;&middot;&nbsp; ' +
+    'Item No. = total no. of items &times; percentage</div>';
+
+  var sigHtml = '<div class="sig-block">' + ["prepared", "reviewed", "validated", "noted"].map(function (k) {
+    var s = state.signatories[k];
+    return '<div class="sig-col"><input type="text" data-sig="' + k + '" data-field="name" value="' + esc(s.name) + '" placeholder="Name"><input class="position-input" type="text" data-sig="' + k + '" data-field="title" value="' + esc(s.title) + '" placeholder="Title"></div>';
+  }).join("") + '</div>' +
+  '<div class="sig-block" style="margin-top:-14px;">' + ["Prepared by:", "Checked and Reviewed by:", "Checked and Validated by:", "Noted by:"].map(function (l) {
+    return '<div class="sig-col role-title">' + l + '</div>';
+  }).join("") + '</div>';
+
+  container.innerHTML =
+    '<div class="card">' +
+      '<div class="card-head"><div class="eyebrow">Step 6</div><h2>Preview &amp; Export</h2>' +
+      '<p>Edit any <strong>Actual # of Items</strong> cell to hand-adjust the distribution &mdash; everything else reflows automatically. Edited cells are highlighted and can be reset individually.</p></div>' +
+      bannerHtml +
+      (lockedCellsExist() ? '<div style="margin-bottom:12px;"><button type="button" class="btn btn-sm" id="resetAllBtn">Reset all overrides</button></div>' : "") +
+      '<div class="doc-frame">' +
+        docHeader +
+        '<div style="overflow-x:auto; margin-top:14px;"><table class="tos">' + theadHtml + '<tbody>' + bodyRows + '</tbody><tfoot>' + totalRow + '</tfoot></table></div>' +
+        legend + formulaNotes + sigHtml +
+      '</div>' +
+      '<div class="btn-row">' +
+        '<div><button type="button" class="btn" id="backBtn5">\u2190 Back</button></div>' +
+        '<div class="right">' +
+          '<button type="button" class="btn btn-gold" id="exportBtn" ' + (!grandOk ? "disabled" : "") + '>\u2B07 Download .xlsx</button>' +
+        '</div>' +
+      '</div>' +
+      (!grandOk ? '<div class="warn-strip" style="margin-top:10px;">Export is disabled until total actual items exactly equal ' + state.totalItems + '. Unlock or adjust an over/under-target cell, or revisit Step 4.</div>' : '') +
+    '</div>';
+
+  attachStep6Handlers(container);
+}
+
+function attachStep6Handlers(container) {
+  document.getElementById("backBtn5").addEventListener("click", function () { goStep(5); });
+
+  var resetAllBtn = document.getElementById("resetAllBtn");
+  if (resetAllBtn) resetAllBtn.addEventListener("click", function () {
+    if (confirm("Reset all manually-adjusted cells back to auto-calculated values?")) { clearAllLocks(); saveState(); renderStep6(container); }
+  });
+
+  var exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.addEventListener("click", function () { exportXlsx(); });
+
+  // Competency text — no recompute needed.
+  container.querySelectorAll('textarea[data-field="text"]').forEach(function (el) {
+    el.addEventListener("input", function () {
+      var comp = state.competencies.find(function (c) { return c.id === el.getAttribute("data-comp"); });
+      if (comp) comp.text = el.value;
+      saveState();
+    });
+  });
+
+  // Days — debounced full recompute (Step 1 + Step 4a), preserves focus.
+  var debouncedDaysCommit = debounce(function (compId, val) {
+    var comp = state.competencies.find(function (c) { return c.id === compId; });
+    if (comp) comp.days = Math.max(0, val);
+    saveState();
+    withFocusPreserved(container, function () { renderStep6(container); });
+  }, 250);
+  container.querySelectorAll('input[data-field="days"]').forEach(function (el) {
+    el.addEventListener("input", function () {
+      debouncedDaysCommit(el.getAttribute("data-comp"), parseInt(el.value, 10) || 0);
+    });
+  });
+
+  // Actual # of items — commits a lock on blur/Enter, then Step 4a reflow.
+  container.querySelectorAll("input.actual-input").forEach(function (el) {
+    function commit() {
+      var compId = el.getAttribute("data-comp"), domain = el.getAttribute("data-domain");
+      var val = Math.max(0, parseInt(el.value, 10) || 0);
+      lockCell(compId, domain, val);
+      saveState();
+      renderStep6(container);
+    }
+    el.addEventListener("change", commit);
+    el.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); el.blur(); } });
+  });
+
+  // Per-cell reset-to-auto.
+  container.querySelectorAll(".reset-pin").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var parts = btn.getAttribute("data-reset").split("|");
+      unlockCell(parts[0], parts[1]);
+      saveState(); renderStep6(container);
+    });
+  });
+
+  // Test type — cosmetic only, no recompute.
+  container.querySelectorAll('td.test-type select').forEach(function (el) {
+    el.addEventListener("change", function () {
+      setTestType(el.getAttribute("data-comp"), el.getAttribute("data-domain"), el.value);
+      saveState();
+    });
+  });
+
+  // Remove row directly from the grid.
+  container.querySelectorAll("[data-remove-grid]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (state.competencies.length <= 1) { alert("At least one competency is required."); return; }
+      var doRemove = function () {
+        var id = btn.getAttribute("data-remove-grid");
+        state.competencies = state.competencies.filter(function (c) { return c.id !== id; });
+        delete state.cells[id];
+        saveState(); renderStep6(container);
+      };
+      if (lockedCellsExist()) {
+        if (confirm("Removing a competency changes the row structure and will clear all manual item-count overrides. Continue?")) { clearAllLocks(); doRemove(); }
+      } else { doRemove(); }
+    });
+  });
+
+  // Signatories, editable inline too.
+  container.querySelectorAll("[data-sig]").forEach(function (el) {
+    el.addEventListener("input", function () {
+      state.signatories[el.getAttribute("data-sig")][el.getAttribute("data-field")] = el.value;
+      saveState();
+    });
+  });
+}
+/* =========================================================================
+   EXPORT — .xlsx (mirrors the on-screen §4 layout via ExcelJS)
+   ========================================================================= */
+
+var COL_COMP = 1, COL_DAYS = 2, COL_PCT = 3;
+var DOMAIN_START = {}; // first sub-column index per domain
+DOMAIN_ORDER.forEach(function (d, i) { DOMAIN_START[d] = 4 + i * 4; });
+var COL_EXPECTED = 4 + DOMAIN_ORDER.length * 4;      // 28
+var COL_ACTUAL_TOTAL = COL_EXPECTED + 1;             // 29
+var TOTAL_COLS = COL_ACTUAL_TOTAL;                   // 29
+
+var THIN = { style: "thin", color: { argb: "FF6B6558" } };
+var BORDER_ALL = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+var HEX = { navy: "FF0B2545", gold: "FFB8901F", panelAlt: "FFF0EAD6", lock: "FFFFF3D6", white: "FFFFFFFF" };
+var DOMAIN_FILL = {
+  Remembering: "FF0B2545", Understanding: "FF1F4E79", Applying: "FF8A6413",
+  Analyzing: "FFB8641E", Evaluating: "FF6B4E85", Creating: "FF2F7D5A",
+};
+
+function colLetter(n) {
+  var s = "";
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function A1(row, col) { return colLetter(col) + row; }
+
+function exportXlsx() {
+  var result = recompute();
+  if (!result) { alert("Please complete Steps 1-5 before exporting."); return; }
+  var rows = state.competencies;
+  var grandOk = result.grandTotal === state.totalItems;
+  if (!grandOk) { alert("Total actual items (" + result.grandTotal + ") does not equal the target (" + state.totalItems + "). Resolve this before exporting."); return; }
+
+  var wb = new ExcelJS.Workbook();
+  wb.creator = "TOS Generator";
+  wb.created = new Date();
+  var ws = wb.addWorksheet("TOS", { pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+
+  // Column widths
+  ws.getColumn(COL_COMP).width = 42;
+  ws.getColumn(COL_DAYS).width = 8;
+  ws.getColumn(COL_PCT).width = 8;
+  for (var c = 4; c <= COL_EXPECTED - 1; c++) ws.getColumn(c).width = 9;
+  ws.getColumn(COL_EXPECTED).width = 10;
+  ws.getColumn(COL_ACTUAL_TOTAL).width = 10;
+
+  var r = 1;
+  function mergeRow(row, text, opts) {
+    ws.mergeCells(row, 1, row, TOTAL_COLS);
+    var cell = ws.getCell(row, 1);
+    cell.value = text;
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.font = Object.assign({ name: "Calibri", size: opts && opts.size || 11 }, opts && opts.font || {});
+    return cell;
+  }
+
+  mergeRow(r++, "Republic of the Philippines", { size: 11 });
+  mergeRow(r++, "Department of Education", { size: 13, font: { bold: true } });
+  mergeRow(r++, state.header.region || "", { size: 11 });
+  mergeRow(r++, state.header.sdo || "", { size: 11 });
+  r++; // spacer
+
+  // School / Quarter row (split)
+  var half = Math.floor(TOTAL_COLS / 2);
+  ws.mergeCells(r, 1, r, half);
+  ws.getCell(r, 1).value = "School: " + (state.header.school || "");
+  ws.getCell(r, 1).alignment = { horizontal: "left" };
+  ws.getCell(r, 1).font = { bold: true, size: 11 };
+  ws.mergeCells(r, half + 1, r, TOTAL_COLS);
+  ws.getCell(r, half + 1).value = state.header.quarter + " QUARTER";
+  ws.getCell(r, half + 1).alignment = { horizontal: "right" };
+  ws.getCell(r, half + 1).font = { bold: true, size: 11 };
+  r++;
+
+  ws.mergeCells(r, 1, r, half);
+  ws.getCell(r, 1).value = "Grade & Subject: " + (state.header.gradeSection || "");
+  ws.getCell(r, 1).alignment = { horizontal: "left" };
+  ws.getCell(r, 1).font = { bold: true, size: 11 };
+  ws.mergeCells(r, half + 1, r, TOTAL_COLS);
+  ws.getCell(r, half + 1).value = state.totalItems + " No. of Items";
+  ws.getCell(r, half + 1).alignment = { horizontal: "right" };
+  ws.getCell(r, half + 1).font = { bold: true, size: 11 };
+  r++;
+
+  mergeRow(r++, "SY " + (state.header.schoolYear || ""), { size: 11, font: { bold: true } });
+  r++; // spacer
+
+  // ---- Table header block (4 rows) ----
+  var headTop = r;
+  var rTax = r, rNames = r + 1, rPct = r + 2, rSub = r + 3;
+
+  ws.mergeCells(rTax, COL_COMP, rSub, COL_COMP);
+  ws.mergeCells(rTax, COL_DAYS, rSub, COL_DAYS);
+  ws.mergeCells(rTax, COL_PCT, rSub, COL_PCT);
+  ws.mergeCells(rTax, COL_EXPECTED, rSub, COL_EXPECTED);
+  ws.mergeCells(rTax, COL_ACTUAL_TOTAL, rSub, COL_ACTUAL_TOTAL);
+  ws.getCell(rTax, COL_COMP).value = "Competency";
+  ws.getCell(rTax, COL_DAYS).value = "No. of Days";
+  ws.getCell(rTax, COL_PCT).value = "% Weight";
+  ws.getCell(rTax, COL_EXPECTED).value = "Expected No. of Items";
+  ws.getCell(rTax, COL_ACTUAL_TOTAL).value = "Actual No. of Items";
+
+  ws.mergeCells(rTax, DOMAIN_START["Remembering"], rTax, DOMAIN_START["Creating"] + 3);
+  ws.getCell(rTax, DOMAIN_START["Remembering"]).value = "TAXONOMY (Bloom\u2019s Domains)";
+
+  var domainPct = LEARNING_AREA_CONFIG[state.learningArea];
+  var subLabels = ["Tentative Item No.", "Actual # of Items", "Test Placement", "Test Type"];
+  DOMAIN_ORDER.forEach(function (d) {
+    var start = DOMAIN_START[d];
+    ws.mergeCells(rNames, start, rNames, start + 3);
+    ws.getCell(rNames, start).value = d;
+    ws.mergeCells(rPct, start, rPct, start + 3);
+    ws.getCell(rPct, start).value = domainPct[d] + "%";
+    subLabels.forEach(function (lbl, i) { ws.getCell(rSub, start + i).value = lbl; });
+  });
+
+  // Style header block rows
+  for (var hr = rTax; hr <= rSub; hr++) {
+    for (var hc = 1; hc <= TOTAL_COLS; hc++) {
+      var hcell = ws.getCell(hr, hc);
+      hcell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      hcell.font = { bold: true, size: 9, color: { argb: hr === rTax || hr === rNames ? HEX.white : HEX.navy.replace("FF", "FF") } };
+      hcell.border = BORDER_ALL;
+      if (hr === rTax) hcell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEX.navy } };
+      else if (hr === rNames) {
+        var dom = DOMAIN_ORDER.filter(function (d) { return hc >= DOMAIN_START[d] && hc <= DOMAIN_START[d] + 3; })[0];
+        hcell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: dom ? DOMAIN_FILL[dom] : HEX.navy } };
+      } else if (hr === rPct) {
+        hcell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEX.panelAlt } };
+        hcell.font = { bold: true, size: 9, color: { argb: "FF0B2545" } };
+      } else {
+        hcell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF6F3E9" } };
+        hcell.font = { bold: false, size: 8, color: { argb: "FF495468" } };
+      }
+    }
+  }
+  ws.getRow(rTax).height = 20;
+  ws.getRow(rSub).height = 24;
+
+  r = rSub + 1;
+
+  // ---- Data rows ----
+  var totalTentativeByDomain = {}, totalActualByDomain = {};
+  DOMAIN_ORDER.forEach(function (d) { totalTentativeByDomain[d] = 0; totalActualByDomain[d] = 0; });
+
+  rows.forEach(function (comp) {
+    var rt = result.rowTargets[comp.id];
+    var rowSum = 0;
+    ws.getCell(r, COL_COMP).value = comp.text || "";
+    ws.getCell(r, COL_COMP).alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+    ws.getCell(r, COL_DAYS).value = Number(comp.days) || 0;
+    ws.getCell(r, COL_PCT).value = Math.round(rt.weightPct * 10) / 10 + "%";
+
+    DOMAIN_ORDER.forEach(function (d) {
+      var start = DOMAIN_START[d];
+      var cellState = getCell(comp.id, d);
+      var val = result.matrix[comp.id][d];
+      var tent = result.tentative[comp.id][d];
+      rowSum += val;
+      totalTentativeByDomain[d] += tent;
+      totalActualByDomain[d] += val;
+
+      ws.getCell(r, start).value = tent === 0 ? null : Math.round(tent * 10) / 10;
+      var actualCell = ws.getCell(r, start + 1);
+      actualCell.value = val === 0 ? null : val;
+      if (cellState.locked) actualCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEX.lock } };
+      ws.getCell(r, start + 2).value = result.placements[comp.id][d].label || null;
+      ws.getCell(r, start + 3).value = val > 0 ? cellState.testType : null;
+    });
+
+    ws.getCell(r, COL_EXPECTED).value = Math.round(rt.expected * 10) / 10;
+    ws.getCell(r, COL_ACTUAL_TOTAL).value = rowSum;
+
+    for (var cc = 1; cc <= TOTAL_COLS; cc++) {
+      var dc = ws.getCell(r, cc);
+      dc.border = BORDER_ALL;
+      dc.font = { size: 9 };
+      if (cc !== COL_COMP) dc.alignment = { horizontal: "center", vertical: "middle" };
+      dc.alignment = Object.assign({ vertical: "middle" }, dc.alignment, cc === COL_COMP ? { horizontal: "left", wrapText: true } : { horizontal: "center" });
+    }
+    ws.getRow(r).height = 30;
+    r++;
+  });
+
+  // ---- TOTAL row ----
+  var totalRowIdx = r;
+  ws.getCell(r, COL_COMP).value = "TOTAL";
+  ws.getCell(r, COL_DAYS).value = totalDays();
+  ws.getCell(r, COL_PCT).value = "100%";
+  DOMAIN_ORDER.forEach(function (d) {
+    var start = DOMAIN_START[d];
+    ws.getCell(r, start).value = Math.round(totalTentativeByDomain[d] * 10) / 10;
+    ws.getCell(r, start + 1).value = totalActualByDomain[d];
+  });
+  ws.getCell(r, COL_EXPECTED).value = state.totalItems;
+  ws.getCell(r, COL_ACTUAL_TOTAL).value = result.grandTotal;
+  for (var tc = 1; tc <= TOTAL_COLS; tc++) {
+    var tcell = ws.getCell(r, tc);
+    tcell.border = BORDER_ALL;
+    tcell.font = { bold: true, size: 9 };
+    tcell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEX.panelAlt } };
+    tcell.alignment = { horizontal: tc === COL_COMP ? "left" : "center", vertical: "middle" };
+  }
+  r += 2;
+
+  // ---- Legend ----
+  mergeRow(r, "Test Type Legend:  " + Object.keys(TEST_TYPES).map(function (k) { return k + " - " + TEST_TYPES[k]; }).join("     "), { size: 9 });
+  r += 1;
+
+  // ---- Formula notes ----
+  var notes = [
+    "Weight = no. of days / total no. of days",
+    "Total No. of Items = weight x no. of items",
+    "Item No. = total no. of items x percentage",
+  ];
+  notes.forEach(function (n) { var cell = mergeRow(r, n, { size: 8.5 }); cell.font = { italic: true, size: 8.5, color: { argb: "FF8590A3" } }; r++; });
+  r += 1;
+
+  // ---- Signatory block ----
+  var quarter = Math.floor(TOTAL_COLS / 4);
+  var sigDefs = [
+    { key: "prepared", label: "Prepared by:" },
+    { key: "reviewed", label: "Checked and Reviewed by:" },
+    { key: "validated", label: "Checked and Validated by:" },
+    { key: "noted", label: "Noted by:" },
+  ];
+  var labelRow = r, nameRow = r + 1, titleRow = r + 2;
+  sigDefs.forEach(function (sd, i) {
+    var startC = i * quarter + 1;
+    var endC = i === 3 ? TOTAL_COLS : startC + quarter - 1;
+    ws.mergeCells(labelRow, startC, labelRow, endC);
+    ws.getCell(labelRow, startC).value = sd.label;
+    ws.getCell(labelRow, startC).font = { size: 9, color: { argb: "FF495468" } };
+    ws.getCell(labelRow, startC).alignment = { horizontal: "center" };
+
+    ws.mergeCells(nameRow, startC, nameRow, endC);
+    var nameCell = ws.getCell(nameRow, startC);
+    nameCell.value = (state.signatories[sd.key].name || "").toUpperCase();
+    nameCell.font = { bold: true, size: 11 };
+    nameCell.alignment = { horizontal: "center" };
+    nameCell.border = { bottom: { style: "thin", color: { argb: "FF0B2545" } } };
+
+    ws.mergeCells(titleRow, startC, titleRow, endC);
+    var titleCell = ws.getCell(titleRow, startC);
+    titleCell.value = state.signatories[sd.key].title || "";
+    titleCell.font = { size: 9.5 };
+    titleCell.alignment = { horizontal: "center" };
+  });
+  ws.getRow(nameRow).height = 22;
+
+  wb.xlsx.writeBuffer().then(function (buffer) {
+    var blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var fname = "TOS_" + sanitizeFilename(state.learningArea) + "_" + sanitizeFilename(state.header.gradeSection) + "_" + sanitizeFilename(state.header.schoolYear) + ".xlsx";
+    a.href = url; a.download = fname || "TOS.xlsx";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }).catch(function (err) {
+    console.error(err);
+    alert("Something went wrong generating the file. Please try again.");
+  });
+}
+
+/* =========================================================================
+   BOOTSTRAP
+   ========================================================================= */
+render();
+</script>
+</body>
+</html>
