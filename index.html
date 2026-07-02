@@ -174,8 +174,9 @@
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Term</label>
               <select id="meta-term" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none bg-white">
+                <option value="" disabled selected>-- Select Term --</option>
                 <option value="Term 1">Term 1</option>
-                <option value="Term 2" selected>Term 2</option>
+                <option value="Term 2">Term 2</option>
                 <option value="Term 3">Term 3</option>
               </select>
             </div>
@@ -183,11 +184,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Grade</label>
-              <input type="text" id="meta-grade" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Grade 8" value="Grade 8">
+              <input type="text" id="meta-grade" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Grade 8" value="">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
-              <input type="text" id="meta-subject" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Creative Technology" value="Creative Technology">
+              <input type="text" id="meta-subject" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none" placeholder="e.g. Creative Technology" value="">
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
@@ -199,12 +200,12 @@
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Learning Area (Determines Bloom's weights)</label>
             <select id="meta-learning-area" class="w-full px-3 py-1.5 border rounded focus:ring-1 focus:ring-depedBlue outline-none bg-white font-medium">
-              <option value="" disabled>-- Select Learning Area --</option>
+              <option value="" disabled selected>-- Select Learning Area --</option>
               <option value="English & Filipino">English & Filipino</option>
               <option value="Math">Mathematics</option>
               <option value="Science">Science</option>
               <option value="Araling Panlipunan">Araling Panlipunan</option>
-              <option value="TLE/EPP" selected>TLE / EPP</option>
+              <option value="TLE/EPP">TLE / EPP</option>
               <option value="MAPEH/MSEP">MAPEH / MSEP</option>
               <option value="EsP">Edukasyon sa Pagpapakatao (EsP)</option>
             </select>
@@ -247,28 +248,28 @@
           <div>
             <span class="block font-bold text-slate-700 uppercase mb-2">Prepared by (Subject Teacher)</span>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="sig-prep-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="JUAN DELA CRUZ">
+              <input type="text" id="sig-prep-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="">
               <input type="text" id="sig-prep-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="Subject Teacher">
             </div>
           </div>
           <div>
             <span class="block font-bold text-slate-700 uppercase mb-2">Checked & Reviewed by</span>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="sig-rev-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="MARIA CLARA">
+              <input type="text" id="sig-rev-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="">
               <input type="text" id="sig-rev-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="Subject Coordinator">
             </div>
           </div>
           <div>
             <span class="block font-bold text-slate-700 uppercase mb-2">Checked & Validated by</span>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="sig-val-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="DR. ARSENIO PEDRO">
+              <input type="text" id="sig-val-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="">
               <input type="text" id="sig-val-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="OIC, Assistant School Principal">
             </div>
           </div>
           <div>
             <span class="block font-bold text-slate-700 uppercase mb-2">Noted by (School Head)</span>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="sig-noted-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="LEONOR VALENZUELA">
+              <input type="text" id="sig-noted-name" class="px-3 py-1.5 border rounded outline-none" placeholder="Name" value="">
               <input type="text" id="sig-noted-title" class="px-3 py-1.5 border rounded outline-none" placeholder="Title/Position" value="School Head">
             </div>
           </div>
@@ -326,7 +327,6 @@
   <!-- Core Javascript Implementation -->
   <script>
     // Constants & Reference Data (§2)
-    // TLE/EPP weights are modified to hold performance-based distribution only as requested
     const DOMAIN_DATA = {
       "English & Filipino": { "Remembering": 15, "Understanding": 25, "Applying": 25, "Analyzing": 15, "Evaluating": 10, "Creating": 10 },
       "Math": { "Remembering": 30, "Understanding": 30, "Applying": 15, "Analyzing": 15, "Evaluating": 5, "Creating": 5 },
@@ -340,29 +340,25 @@
     // Columns Display Order in Grid (§2 display mandate)
     const DISPLAY_DOMAINS = ["Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", "Creating"];
 
-    // App State - Loaded with Initial Sample Data to prevent empty preview page
+    // App State - Completely blank defaults on first run as per the specs
     let state = {
       meta: {
         region: "Region V (Bicol)",
         division: "Schools Division Office of Legazpi City",
         school: "Banquerohan National High School",
         sy: "2026-2027",
-        term: "Term 2",
-        grade: "Grade 8",
-        subject: "Creative Technology",
+        term: "",
+        grade: "",
+        subject: "",
         totalItems: 40,
-        learningArea: "TLE/EPP"
+        learningArea: ""
       },
-      competencies: [
-        { text: "Cite examples of variables in programming", days: 4 },
-        { text: "Describe effects of changing variables", days: 4 },
-        { text: "Write codes using variables", days: 8 }
-      ],
+      competencies: [],
       signatories: {
-        prepName: "JUAN DELA CRUZ", prepTitle: "Subject Teacher",
-        revName: "MARIA CLARA", revTitle: "Subject Coordinator",
-        valName: "DR. ARSENIO PEDRO", valTitle: "OIC, Assistant School Principal",
-        notedName: "LEONOR VALENZUELA", notedTitle: "School Head"
+        prepName: "", prepTitle: "Subject Teacher",
+        revName: "", revTitle: "Subject Coordinator",
+        valName: "", valTitle: "OIC, Assistant School Principal",
+        notedName: "", notedTitle: "School Head"
       },
       cellLocks: {},
       cellActuals: {},
@@ -438,24 +434,24 @@
 
     // Populate interface from current State
     function syncStateToUI() {
-      document.getElementById('meta-region').value = state.meta.region || "Region V (Bicol)";
-      document.getElementById('meta-division').value = state.meta.division || "Schools Division Office of Legazpi City";
-      document.getElementById('meta-school').value = state.meta.school || "Banquerohan National High School";
-      document.getElementById('meta-sy').value = state.meta.sy || "2026-2027";
-      document.getElementById('meta-term').value = state.meta.term || "Term 2";
-      document.getElementById('meta-grade').value = state.meta.grade || "Grade 8";
-      document.getElementById('meta-subject').value = state.meta.subject || "Creative Technology";
+      document.getElementById('meta-region').value = state.meta.region || "";
+      document.getElementById('meta-division').value = state.meta.division || "";
+      document.getElementById('meta-school').value = state.meta.school || "";
+      document.getElementById('meta-sy').value = state.meta.sy || "";
+      document.getElementById('meta-term').value = state.meta.term || "";
+      document.getElementById('meta-grade').value = state.meta.grade || "";
+      document.getElementById('meta-subject').value = state.meta.subject || "";
       document.getElementById('meta-total-items').value = state.meta.totalItems || 40;
-      document.getElementById('meta-learning-area').value = state.meta.learningArea || "TLE/EPP";
+      document.getElementById('meta-learning-area').value = state.meta.learningArea || "";
 
-      document.getElementById('sig-prep-name').value = state.signatories.prepName;
-      document.getElementById('sig-prep-title').value = state.signatories.prepTitle;
-      document.getElementById('sig-rev-name').value = state.signatories.revName;
-      document.getElementById('sig-rev-title').value = state.signatories.revTitle;
-      document.getElementById('sig-val-name').value = state.signatories.valName;
-      document.getElementById('sig-val-title').value = state.signatories.valTitle;
-      document.getElementById('sig-noted-name').value = state.signatories.notedName;
-      document.getElementById('sig-noted-title').value = state.signatories.notedTitle;
+      document.getElementById('sig-prep-name').value = state.signatories.prepName || "";
+      document.getElementById('sig-prep-title').value = state.signatories.prepTitle || "";
+      document.getElementById('sig-rev-name').value = state.signatories.revName || "";
+      document.getElementById('sig-rev-title').value = state.signatories.revTitle || "";
+      document.getElementById('sig-val-name').value = state.signatories.valName || "";
+      document.getElementById('sig-val-title').value = state.signatories.valTitle || "";
+      document.getElementById('sig-noted-name').value = state.signatories.notedName || "";
+      document.getElementById('sig-noted-title').value = state.signatories.notedTitle || "";
 
       renderCompetencies();
       renderWeightsDisplay();
@@ -492,10 +488,7 @@
             if (loadedState.meta.grade && loadedState.meta.grade.includes("-")) {
               const parts = loadedState.meta.grade.split("-");
               loadedState.meta.grade = parts[0].trim();
-              loadedState.meta.subject = parts[1] ? parts[1].trim() : "Creative Technology";
-            }
-            if (!loadedState.meta.subject) {
-              loadedState.meta.subject = "Creative Technology";
+              loadedState.meta.subject = parts[1] ? parts[1].trim() : "";
             }
             state = loadedState;
           }
@@ -504,7 +497,7 @@
           console.error("Failed to parse saved state", e);
         }
       } else {
-        // First run load, ensure defaults exist
+        // First run load, ensure blank defaults exist
         syncStateToUI();
       }
     }
@@ -518,22 +511,18 @@
             division: "Schools Division Office of Legazpi City",
             school: "Banquerohan National High School",
             sy: "2026-2027",
-            term: "Term 2",
-            grade: "Grade 8",
-            subject: "Creative Technology",
+            term: "",
+            grade: "",
+            subject: "",
             totalItems: 40,
-            learningArea: "TLE/EPP"
+            learningArea: ""
           },
-          competencies: [
-            { text: "Cite examples of variables in programming", days: 4 },
-            { text: "Describe effects of changing variables", days: 4 },
-            { text: "Write codes using variables", days: 8 }
-          ],
+          competencies: [],
           signatories: {
-            prepName: "JUAN DELA CRUZ", prepTitle: "Subject Teacher",
-            revName: "MARIA CLARA", revTitle: "Subject Coordinator",
-            valName: "DR. ARSENIO PEDRO", valTitle: "OIC, Assistant School Principal",
-            notedName: "LEONOR VALENZUELA", notedTitle: "School Head"
+            prepName: "", prepTitle: "Subject Teacher",
+            revName: "", revTitle: "Subject Coordinator",
+            valName: "", valTitle: "OIC, Assistant School Principal",
+            notedName: "", notedTitle: "School Head"
           },
           cellLocks: {},
           cellActuals: {},
@@ -618,6 +607,15 @@
     function updateCompetencyDays(index, value) {
       state.competencies[index].days = parseFloat(value) || 0;
       saveProgress();
+      
+      // Reactive Update: Instantly recalculate total days and update DOM label
+      // This bypasses full component re-rendering to ensure the user does not lose text cursor focus.
+      let totalDays = 0;
+      state.competencies.forEach(comp => {
+        totalDays += comp.days;
+      });
+      document.getElementById('summary-total-days').innerText = totalDays;
+      
       recalculateTOS();
     }
 
@@ -1156,9 +1154,9 @@
           <div><span class="text-slate-400 uppercase">School:</span> <span class="text-slate-800">${state.meta.school}</span></div>
           <div><span class="text-slate-400 uppercase">Grade:</span> <span class="text-slate-800 font-bold">${state.meta.grade || 'N/A'}</span></div>
           <div><span class="text-slate-400 uppercase">Subject:</span> <span class="text-slate-800 font-bold">${state.meta.subject || 'N/A'}</span></div>
-          <div class="md:text-right"><span class="text-slate-400 uppercase">Term:</span> <span class="text-slate-800 font-bold">${state.meta.term.toUpperCase()}</span></div>
+          <div class="md:text-right"><span class="text-slate-400 uppercase">Term:</span> <span class="text-slate-800 font-bold">${state.meta.term ? state.meta.term.toUpperCase() : 'N/A'}</span></div>
           <div><span class="text-slate-400 uppercase">School Year:</span> <span class="text-slate-800">${state.meta.sy}</span></div>
-          <div><span class="text-slate-400 uppercase">Learning Area:</span> <span class="text-slate-800 font-bold">${state.meta.learningArea}</span></div>
+          <div><span class="text-slate-400 uppercase">Learning Area:</span> <span class="text-slate-800 font-bold">${state.meta.learningArea || 'N/A'}</span></div>
           <div class="md:col-span-2 md:text-right"><span class="text-slate-400 uppercase">No. of Items:</span> <span class="text-slate-800 font-bold">${state.meta.totalItems}</span></div>
         </div>
       `;
